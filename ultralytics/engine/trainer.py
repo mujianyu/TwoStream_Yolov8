@@ -126,7 +126,7 @@ class BaseTrainer:
 
         # Model and Dataset
         self.model = check_model_file_from_stem(self.args.model)  # add suffix, i.e. yolov8n -> yolov8n.pt
-        self.trainset, self.testset = self.get_dataset()
+        self.trainset, self.testset,self.trainirset,self.testirset = self.get_dataset()
         self.ema = None
 
         # Optimization utils init
@@ -517,7 +517,7 @@ class BaseTrainer:
         except Exception as e:
             raise RuntimeError(emojis(f"Dataset '{clean_url(self.args.data)}' error ❌ {e}")) from e
         self.data = data
-        return data["train"], data.get("val") or data.get("test")
+        return data["train_rgb"], data.get("val_rgb"),data["train_ir"],data.get("val_ir") or data.get("test")
 
     def setup_model(self):
         """Load/create/download model for any task."""
