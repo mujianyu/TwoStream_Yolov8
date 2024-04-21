@@ -273,11 +273,12 @@ class BaseTrainer:
 
         # Dataloaders
         batch_size = self.batch_size // max(world_size, 1)
-        self.train_loader = self.get_dataloader(self.trainset, batch_size=batch_size, rank=RANK, mode="train")
+        # 读取数据集
+        self.train_loader = self.get_dataloader(self.trainset, self.trainirset,batch_size=batch_size, rank=RANK, mode="train")
         if RANK in {-1, 0}:
             # Note: When training DOTA dataset, double batch size could get OOM on images with >2000 objects.
             self.test_loader = self.get_dataloader(
-                self.testset, batch_size=batch_size if self.args.task == "obb" else batch_size * 2, rank=-1, mode="val"
+                self.testset, self.testirset,batch_size=batch_size if self.args.task == "obb" else batch_size * 2, rank=-1, mode="val"
             )
             self.validator = self.get_validator()
             metric_keys = self.validator.metrics.keys + self.label_loss_items(prefix="val")
@@ -352,6 +353,45 @@ class BaseTrainer:
             for i, batch in pbar:
                 self.run_callbacks("on_train_batch_start")
                 # Warmup
+                # img1= batch['img'][0][1:,...]
+                # img2= batch['img'][0][:1,...]
+                # img1=img1.permute(1, 2, 0) 
+                # img2=img2.permute(1,2,0)
+  
+      
+                # import matplotlib.pyplot as plt  
+
+                # plt.imshow(img1)
+                # plt.show()
+                # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'rgb.jpg')
+                # # 创建一个新的图形  
+                # plt.imshow(img)
+                # plt.show()
+                # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'ir.jpg')
+
+                # import matplotlib.pyplot as plt  
+                # import cv2
+                # import numpy as np
+                # img2=np.array(img2)
+                # plt.imshow(img1)
+                # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'rgb.jpg')
+                # plt.close()
+
+                # cv2.imwrite('/home/mjy/ultralytics/images/'+str(i)+'ir.jpg', img2) #保存
+                
+                #将shape变为4
+                # import cv2
+                # for i in len(batch['img']):
+                #     img1= batch['img'][i][:3,...]
+                #     img2=batch['img'][i][3:,...]
+                #     img1=img1.permute(1, 2, 0) 
+                #     gray_image_array = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)  
+                #     img1 = gray_image_array[..., np.newaxis]
+                    
+                #     img1=img1.permute(2, 0, 1) 
+                #     batch['img'][i]=np.concatenate((img1,img2),axis=1)
+                    
+
                 ni = i + nb * epoch
                 if ni <= nw:
                     xi = [0, nw]  # x interp
@@ -517,7 +557,7 @@ class BaseTrainer:
         except Exception as e:
             raise RuntimeError(emojis(f"Dataset '{clean_url(self.args.data)}' error ❌ {e}")) from e
         self.data = data
-        return data["train_rgb"], data.get("val_rgb"),data["train_ir"],data.get("val_ir") or data.get("test")
+        return data["train"], data.get("val"),data["train_ir"],data.get("val_ir") or data.get("test")
 
     def setup_model(self):
         """Load/create/download model for any task."""

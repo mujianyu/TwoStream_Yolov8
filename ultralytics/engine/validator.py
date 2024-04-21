@@ -151,10 +151,14 @@ class BaseValidator:
             if not pt:
                 self.args.rect = False
             self.stride = model.stride  # used in get_dataloader() for padding
-            self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split), self.args.batch)
+            
+            #ir图像位置
+            irpath='/home/mjy/ultralytics/datasets/rgbir/image/val'
+
+            self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split),irpath, self.args.batch)
 
             model.eval()
-            model.warmup(imgsz=(1 if pt else self.args.batch, 3, imgsz, imgsz))  # warmup
+            model.warmup(imgsz=(1 if pt else self.args.batch, 6, imgsz, imgsz))  # warmup
 
         self.run_callbacks("on_val_start")
         dt = (
@@ -169,6 +173,14 @@ class BaseValidator:
         for batch_i, batch in enumerate(bar):
             self.run_callbacks("on_val_batch_start")
             self.batch_i = batch_i
+            # import matplotlib.pyplot as plt  
+            # plt.imshow(img1)
+            # plt.show()
+            # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'rgb.jpg')
+            # # 创建一个新的图形  
+            # plt.imshow(img)
+            # plt.show()
+            # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'ir.jpg')
             # Preprocess
             with dt[0]:
                 batch = self.preprocess(batch)

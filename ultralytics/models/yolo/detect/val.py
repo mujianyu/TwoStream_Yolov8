@@ -209,7 +209,7 @@ class DetectionValidator(BaseValidator):
         iou = box_iou(gt_bboxes, detections[:, :4])
         return self.match_predictions(detections[:, 5], gt_cls, iou)
 
-    def build_dataset(self, img_path, mode="val", batch=None):
+    def build_dataset(self, img_path,imgir_path, mode="val", batch=None):
         """
         Build YOLO Dataset.
 
@@ -218,11 +218,11 @@ class DetectionValidator(BaseValidator):
             mode (str): `train` mode or `val` mode, users are able to customize different augmentations for each mode.
             batch (int, optional): Size of batches, this is for `rect`. Defaults to None.
         """
-        return build_yolo_dataset(self.args, img_path, batch, self.data, mode=mode, stride=self.stride)
+        return build_yolo_dataset(self.args, img_path, imgir_path,batch, self.data, mode=mode, stride=self.stride)
 
-    def get_dataloader(self, dataset_path, batch_size):
+    def get_dataloader(self, dataset_path,datasetir_path, batch_size):
         """Construct and return dataloader."""
-        dataset = self.build_dataset(dataset_path, batch=batch_size, mode="val")
+        dataset = self.build_dataset(dataset_path,datasetir_path, batch=batch_size, mode="val")
         return build_dataloader(dataset, batch_size, self.args.workers, shuffle=False, rank=-1)  # return dataloader
 
     def plot_val_samples(self, batch, ni):

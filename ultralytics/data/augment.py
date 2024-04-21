@@ -654,18 +654,26 @@ class RandomHSV:
         The modified image replaces the original image in the input 'labels' dict.
         """
         img = labels["img"]
+        # 修改1
         if self.hgain or self.sgain or self.vgain:
             r = np.random.uniform(-1, 1, 3) * [self.hgain, self.sgain, self.vgain] + 1  # random gains
-            hue, sat, val = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2HSV))
+            hue, sat, val = cv2.split(cv2.cvtColor(img[:,:,:3], cv2.COLOR_BGR2HSV))
             dtype = img.dtype  # uint8
 
             x = np.arange(0, 256, dtype=r.dtype)
             lut_hue = ((x * r[0]) % 180).astype(dtype)
             lut_sat = np.clip(x * r[1], 0, 255).astype(dtype)
             lut_val = np.clip(x * r[2], 0, 255).astype(dtype)
-
+            
+            w=img.shape[0]
+            h=img.shape[1]
+            tmp = np.zeros((w, h, 3), dtype=np.uint8)
             im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
-            cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR, dst=img)  # no return needed
+            # dst 是输出图像到
+            # 
+            cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR, dst=tmp)  # no return needed
+            img[:,:,:3]=tmp
+            
         return labels
 
 
@@ -772,9 +780,28 @@ class LetterBox:
             img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
         top, bottom = int(round(dh - 0.1)) if self.center else 0, int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)) if self.center else 0, int(round(dw + 0.1))
-        img = cv2.copyMakeBorder(
-            img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114)
-        )  # add border
+        if img.shape[2]==6:
+            #shape为6时候makeBorder
+            # if img[...,:3].shape!=img[...,3:].shape:
+            #     print(img[...,:3].shape)
+            #     print(img[...,3:].shape)
+            # print(img[...,:3].shape)
+            # print(img[...,3:].shape)
+            
+            tmp1 = cv2.copyMakeBorder(
+            img[...,:3], top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114)
+        ) 
+            tmp2 = cv2.copyMakeBorder(
+            img[...,3:], top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114)
+        )   
+
+            img = np.concatenate((tmp1, tmp2), axis=2).astype(img.dtype)    
+
+                
+        else:
+            img = cv2.copyMakeBorder(
+                img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114)
+            )  # add border
         if labels.get("ratio_pad"):
             labels["ratio_pad"] = (labels["ratio_pad"], (left, top))  # for evaluation
 
@@ -897,7 +924,7 @@ class Albumentations:
             pass
         except Exception as e:
             LOGGER.info(f"{prefix}{e}")
-
+    # 禁用了agument
     def __call__(self, labels):
         """Generates object detections and returns a dictionary with detection results."""
         im = labels["img"]
@@ -905,15 +932,16 @@ class Albumentations:
         if len(cls):
             labels["instances"].convert_bbox("xywh")
             labels["instances"].normalize(*im.shape[:2][::-1])
-            bboxes = labels["instances"].bboxes
+            # bboxes = labels["instances"].bboxes
             # TODO: add supports of segments and keypoints
-            if self.transform and random.random() < self.p:
-                new = self.transform(image=im, bboxes=bboxes, class_labels=cls)  # transformed
-                if len(new["class_labels"]) > 0:  # skip update if no bbox in new im
-                    labels["img"] = new["image"]
-                    labels["cls"] = np.array(new["class_labels"])
-                    bboxes = np.array(new["bboxes"], dtype=np.float32)
-            labels["instances"].update(bboxes=bboxes)
+            
+            # if self.transform and random.random() < self.p:
+            #     new = self.transform(image=im, bboxes=bboxes, class_labels=cls)  # transformed
+            #     if len(new["class_labels"]) > 0:  # skip update if no bbox in new im
+            #         labels["img"] = new["image"]
+            #         labels["cls"] = np.array(new["class_labels"])
+            #         bboxes = np.array(new["bboxes"], dtype=np.float32)
+            # labels["instances"].update(bboxes=bboxes)
         return labels
 
 
@@ -1001,8 +1029,16 @@ class Format:
         """Format the image for YOLO from Numpy array to PyTorch tensor."""
         if len(img.shape) < 3:
             img = np.expand_dims(img, -1)
-        img = img.transpose(2, 0, 1)
-        img = np.ascontiguousarray(img[::-1] if random.uniform(0, 1) > self.bgr else img)
+        img1=img[...,:3]
+        img2=img[...,3:]
+
+        img1 = img1.transpose(2, 0, 1)
+        img1 = np.ascontiguousarray(img1[::-1] if random.uniform(0, 1) > self.bgr else img1)
+        
+        img2=img2.transpose(2,0,1)
+        img2 = np.ascontiguousarray(img2[::-1] if random.uniform(0, 1) > self.bgr else img2)
+        
+        img=np.concatenate((img1, img2), axis=0)
         img = torch.from_numpy(img)
         return img
 

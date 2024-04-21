@@ -36,6 +36,7 @@ from .utils import (
     save_dataset_cache_file,
     verify_image,
     verify_image_label,
+    imgir2label_paths
 )
 
 # Ultralytics dataset *.cache version, >= 1.0.0 for YOLOv8
@@ -53,7 +54,7 @@ class YOLODataset(BaseDataset):
     Returns:
         (torch.utils.data.Dataset): A PyTorch dataset object that can be used for training an object detection model.
     """
-
+    # YOLODataset 复写了cachelabels,build_transforms,close_mosaic,update_labels_info 以及collate_fn
     def __init__(self, *args, data=None, task="detect", **kwargs):
         """Initializes the YOLODataset with optional configurations for segments and keypoints."""
         self.use_segments = task == "segment"
@@ -97,15 +98,18 @@ class YOLODataset(BaseDataset):
                 ),
             )
             pbar = TQDM(results, desc=desc, total=total)
+            import os  
             for im_file, lb, shape, segments, keypoint, nm_f, nf_f, ne_f, nc_f, msg in pbar:
                 nm += nm_f
                 nf += nf_f
                 ne += ne_f
                 nc += nc_f
+              
                 if im_file:
                     x["labels"].append(
                         {
                             "im_file": im_file,
+                          
                             "shape": shape,
                             "cls": lb[:, 0:1],  # n, 1
                             "bboxes": lb[:, 1:],  # n, 4
@@ -133,6 +137,7 @@ class YOLODataset(BaseDataset):
     def get_labels(self):
         """Returns dictionary of labels for YOLO training."""
         self.label_files = img2label_paths(self.im_files)
+        
         cache_path = Path(self.label_files[0]).parent.with_suffix(".cache")
         try:
             cache, exists = load_dataset_cache_file(cache_path), True  # attempt to load a *.cache file
@@ -170,7 +175,8 @@ class YOLODataset(BaseDataset):
         if len_cls == 0:
             LOGGER.warning(f"WARNING ⚠️ No labels found in {cache_path}, training may not work correctly. {HELP_URL}")
         return labels
-
+    
+   
     def build_transforms(self, hyp=None):
         """Builds and appends transforms to the list."""
         if self.augment:

@@ -49,6 +49,8 @@ from ultralytics.nn.modules import (
     Segment,
     Silence,
     WorldDetect,
+    Concat2,
+    ADD,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -120,12 +122,49 @@ class BaseModel(nn.Module):
             (torch.Tensor): The last output of the model.
         """
         y, dt, embeddings = [], [], []  # outputs
+       
+        if(x.shape[1]==6) :
+
+            import matplotlib.pyplot as plt  
+            import cv2
+            import numpy as np
+            
+            # img1= x[0][:3,...] #rgb
+            # img2= x[0][3:,...] #ir
+            # img1=img1.permute(1, 2, 0) 
+            # img2=img2.permute(1,2,0)
+            # if type(img2==torch.Tensor):
+            #     img2=img2.cpu()
+            #     img2=np.array(img2)
+            # else :    
+            #     img2=np.array(img2)
+            # if type(img1==torch.Tensor):
+            #     img1=img1.cpu()
+
+            # plt.imshow(img1)
+            # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'rgb.jpg')
+            # plt.close()
+            # plt.imshow(img2)
+            # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'ir.jpg')
+            # plt.close()
+            x2=x[:, 3:, :, :]
+            x=x[:, :3, :, :]
+        else :
+            x2=x
+        
+
         for m in self.model:
-            if m.f != -1:  # if not from previous layer
-                x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+
+            if m.f != -4:
+                if m.f != -1:  # if not from previous layer
+                    x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+       
             if profile:
                 self._profile_one_layer(m, x, dt)
-            x = m(x)  # run
+            if m.f == -4:
+                x= m(x2)
+            else :
+                x = m(x)  # run
             y.append(x if m.i in self.save else None)  # save output
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
@@ -293,8 +332,10 @@ class DetectionModel(BaseModel):
         if isinstance(m, Detect):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             s = 256  # 2x min stride
             m.inplace = self.inplace
+
             forward = lambda x: self.forward(x)[0] if isinstance(m, (Segment, Pose, OBB)) else self.forward(x)
-            m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(1, ch, s, s))])  # forward
+            #计算步长修改
+            m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(1, 6, s, s))])  # forward
             self.stride = m.stride
             m.bias_init()  # only run once
         else:
@@ -849,6 +890,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
     if verbose:
         LOGGER.info(f"\n{'':>3}{'from':>20}{'n':>3}{'params':>10}  {'module':<45}{'arguments':<30}")
+    
     ch = [ch]
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
@@ -859,6 +901,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                     args[j] = locals()[a] if a in locals() else ast.literal_eval(a)
 
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
+  
         if m in {
             Classify,
             Conv,
@@ -887,6 +930,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RepC3,
         }:
             c1, c2 = ch[f], args[0]
+            if f==-4:
+            #此时为下个backbonce,红外光
+                c1=3
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             if m is C2fAttn:
@@ -899,6 +945,16 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if m in {BottleneckCSP, C1, C2, C2f, C2fAttn, C3, C3TR, C3Ghost, C3x, RepC3}:
                 args.insert(2, n)  # number of repeats
                 n = 1
+        elif m is ADD:
+#            print("ch[f]", f, ch[f[0]])
+            c2 = ch[f[0]]
+            args = [c2]          
+        elif m is Concat2:
+            
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2]
+
         elif m is AIFI:
             args = [ch[f], *args]
         elif m in {HGStem, HGBlock}:

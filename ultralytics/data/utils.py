@@ -47,6 +47,10 @@ def img2label_paths(img_paths):
     sa, sb = f"{os.sep}images{os.sep}", f"{os.sep}labels{os.sep}"  # /images/, /labels/ substrings
     return [sb.join(x.rsplit(sa, 1)).rsplit(".", 1)[0] + ".txt" for x in img_paths]
 
+def imgir2label_paths(img_paths):
+    """Define label paths as a function of image paths."""
+    sa, sb = f"{os.sep}image{os.sep}", f"{os.sep}labels{os.sep}"  # /images/, /labels/ substrings
+    return [sb.join(x.rsplit(sa, 1)).rsplit(".", 1)[0] + ".txt" for x in img_paths]
 
 def get_hash(paths):
     """Returns a single hash value of a list of paths (files or dirs)."""
@@ -279,7 +283,7 @@ def check_det_dataset(dataset, autodownload=True):
     data = yaml_load(file, append_filename=True)  # dictionary
 
     # Checks
-    for k in "train_rgb", "val_rgb","train_ir","val_ir":
+    for k in "train", "val","train_ir","val_ir":
         if k not in data:
             if k != "val_rgb" or "validation" not in data:
                 raise SyntaxError(
@@ -305,7 +309,7 @@ def check_det_dataset(dataset, autodownload=True):
 
     # Set paths
     data["path"] = path  # download scripts
-    for k in "train_rgb", "val_rgb","train_ir","val_ir", "test", "minival":
+    for k in "train", "val","train_ir","val_ir", "test", "minival":
         if data.get(k):  # prepend path
             if isinstance(data[k], str):
                 x = (path / data[k]).resolve()
@@ -316,7 +320,7 @@ def check_det_dataset(dataset, autodownload=True):
                 data[k] = [str((path / x).resolve()) for x in data[k]]
 
     # Parse YAML
-    val, s = (data.get(x) for x in ("val_rgb","val_ir", "download"))
+    val, s = (data.get(x) for x in ("val", "download"))
     if val:
         val = [Path(x).resolve() for x in (val if isinstance(val, list) else [val])]  # val path
         if not all(x.exists() for x in val):

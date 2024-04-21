@@ -50,6 +50,7 @@ class BaseDataset(Dataset):
     def __init__(
         self,
         img_path,
+        imgir_path,
         imgsz=640,
         cache=False,
         augment=True,
@@ -66,14 +67,19 @@ class BaseDataset(Dataset):
         """Initialize BaseDataset with given configuration and options."""
         super().__init__()
         self.img_path = img_path
+        self.imgir_path=imgir_path
         self.imgsz = imgsz
         self.augment = augment
         self.single_cls = single_cls
         self.prefix = prefix
         self.fraction = fraction
         self.im_files = self.get_img_files(self.img_path)
+        self.imir_files = self.get_img_files(self.imgir_path)
+
         self.labels = self.get_labels()
+        #self.labelsir= self.get_irlabels()
         self.update_labels(include_class=classes)  # single_cls and include_class
+
         self.ni = len(self.labels)  # number of images
         self.rect = rect
         self.batch_size = batch_size
@@ -88,11 +94,14 @@ class BaseDataset(Dataset):
         self.max_buffer_length = min((self.ni, self.batch_size * 8, 1000)) if self.augment else 0
 
         # Cache images (options are cache = True, False, None, "ram", "disk")
-        self.ims, self.im_hw0, self.im_hw = [None] * self.ni, [None] * self.ni, [None] * self.ni
+        self.ims,self.imsir, self.im_hw0, self.im_hw = [None] * self.ni,[None] * self.ni, [None] * self.ni, [None] * self.ni
         self.npy_files = [Path(f).with_suffix(".npy") for f in self.im_files]
+        #self.npyir_files = [Path(f).with_suffix(".npy") for f in self.imir_files]
+
         self.cache = cache.lower() if isinstance(cache, str) else "ram" if cache is True else None
         if (self.cache == "ram" and self.check_cache_ram()) or self.cache == "disk":
             self.cache_images()
+            #self.cacheir_images()
 
         # Transforms
         self.transforms = self.build_transforms(hyp=hyp)
@@ -118,11 +127,15 @@ class BaseDataset(Dataset):
             # self.img_files = sorted([x for x in f if x.suffix[1:].lower() in IMG_FORMATS])  # pathlib
             assert im_files, f"{self.prefix}No images found in {img_path}. {FORMATS_HELP_MSG}"
         except Exception as e:
+ 
             raise FileNotFoundError(f"{self.prefix}Error loading data from {img_path}\n{HELP_URL}") from e
         if self.fraction < 1:
             im_files = im_files[: round(len(im_files) * self.fraction)]  # retain a fraction of the dataset
         return im_files
 
+
+
+    
     def update_labels(self, include_class: Optional[list]):
         """Update labels to include only these classes (optional)."""
         include_class_array = np.array(include_class).reshape(1, -1)
@@ -145,6 +158,15 @@ class BaseDataset(Dataset):
     def load_image(self, i, rect_mode=True):
         """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
         im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
+        
+        f1=self.imir_files[i]
+        imir=cv2.imread(f1)
+        
+        #imir=cv2.cvtColor(imir,cv2.COLOR_BGR2GRAY) #转化为i灰度图像
+
+        # if imir.ndim == 2:  
+        #     imir = imir[:, :, np.newaxis]  # 添加一个通道维度
+        
         if im is None:  # not cached in RAM
             if fn.exists():  # load npy
                 try:
@@ -158,6 +180,15 @@ class BaseDataset(Dataset):
             if im is None:
                 raise FileNotFoundError(f"Image Not Found {f}")
 
+
+            im = np.dstack((im, imir))
+            # import matplotlib.pyplot as plt  
+
+            # plt.imshow(im[:,:,:3])
+            # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'rgb.jpg')
+            # plt.close()
+
+            # cv2.imwrite('/home/mjy/ultralytics/images/'+str(i)+'ir.jpg', im[:,:,3:]) #保存
             h0, w0 = im.shape[:2]  # orig hw
             if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
                 r = self.imgsz / max(h0, w0)  # ratio
@@ -180,6 +211,43 @@ class BaseDataset(Dataset):
 
         return self.ims[i], self.im_hw0[i], self.im_hw[i]
 
+    def loadir_image(self, i, rect_mode=True):
+        """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
+        im, f, fn = self.imsir[i], self.imir_files[i], self.npyir_files[i]
+        if im is None:  # not cached in RAM
+            if fn.exists():  # load npy
+                try:
+                    im = np.load(fn)
+                except Exception as e:
+                    LOGGER.warning(f"{self.prefix}WARNING ⚠️ Removing corrupt *.npy image file {fn} due to: {e}")
+                    Path(fn).unlink(missing_ok=True)
+                    im = cv2.imread(f,cv2.IMREAD_GRAYSCALE)  # BGR
+            else:  # read image
+                im = cv2.imread(f,cv2.IMREAD_GRAYSCALE)  # BGR
+            if im is None:
+                raise FileNotFoundError(f"Image Not Found {f}")
+            h0, w0 = im.shape[:2]  # orig hw
+            if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
+                r = self.imgsz / max(h0, w0)  # ratio
+                if r != 1:  # if sizes are not equal
+                    w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
+                    im = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
+            elif not (h0 == w0 == self.imgsz):  # resize by stretching image to square imgsz
+                im = cv2.resize(im, (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR)
+
+            # Add to buffer if training with augmentations
+            if self.augment:
+                self.imsir[i], self.im_hw0[i], self.im_hw[i] = im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
+                self.buffer.append(i)
+                if len(self.buffer) >= self.max_buffer_length:
+                    j = self.buffer.pop(0)
+                    if self.cache != "ram":
+                        self.imsir[j], self.im_hw0[j], self.im_hw[j] = None, None, None
+
+            return im, (h0, w0), im.shape[:2]
+
+        return self.imsir[i], self.im_hw0[i], self.im_hw[i]
+
     def cache_images(self):
         """Cache images to memory or disk."""
         b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
@@ -196,11 +264,48 @@ class BaseDataset(Dataset):
                 pbar.desc = f"{self.prefix}Caching images ({b / gb:.1f}GB {storage})"
             pbar.close()
 
+    def cacheir_images(self):
+        """Cache images to memory or disk."""
+        b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
+
+        fcn, storage = (self.cacheir_images_to_disk, "Disk") if self.cache == "disk" else (self.loadir_image, "RAM")
+        with ThreadPool(NUM_THREADS) as pool:
+            results = pool.imap(fcn, range(self.ni))
+            pbar = TQDM(enumerate(results), total=self.ni, disable=LOCAL_RANK > 0)
+            for i, x in pbar:
+                if self.cache == "disk":
+                    b += self.npyir_files[i].stat().st_size
+                else:  # 'ram'
+                    self.imsir[i], self.im_hw0[i], self.im_hw[i] = x  # im, hw_orig, hw_resized = load_image(self, i)
+                    b += self.imsir[i].nbytes
+                pbar.desc = f"{self.prefix}Caching images ({b / gb:.1f}GB {storage})"
+            pbar.close()
+
+    def cache_images(self):
+        """Cache images to memory or disk."""
+        b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
+        fcn, storage = (self.cache_images_to_disk, "Disk") if self.cache == "disk" else (self.load_image, "RAM")
+        with ThreadPool(NUM_THREADS) as pool:
+            results = pool.imap(fcn, range(self.ni))
+            pbar = TQDM(enumerate(results), total=self.ni, disable=LOCAL_RANK > 0)
+            for i, x in pbar:
+                if self.cache == "disk":
+                    b += self.npy_files[i].stat().st_size
+                else:  # 'ram'
+                    self.ims[i], self.im_hw0[i], self.im_hw[i] = x  # im, hw_orig, hw_resized = load_image(self, i)
+                    b += self.ims[i].nbytes
+                pbar.desc = f"{self.prefix}Caching images ({b / gb:.1f}GB {storage})"
+            pbar.close()
     def cache_images_to_disk(self, i):
         """Saves an image as an *.npy file for faster loading."""
         f = self.npy_files[i]
         if not f.exists():
             np.save(f.as_posix(), cv2.imread(self.im_files[i]), allow_pickle=False)
+    def cacheir_images_to_disk(self, i):
+        """Saves an image as an *.npy file for faster loading."""
+        f = self.npyir_files[i]
+        if not f.exists():
+            np.save(f.as_posix(), cv2.imread(self.imir_files[i]), allow_pickle=False)
 
     def check_cache_ram(self, safety_margin=0.5):
         """Check image caching requirements vs available memory."""
@@ -231,6 +336,7 @@ class BaseDataset(Dataset):
         ar = s[:, 0] / s[:, 1]  # aspect ratio
         irect = ar.argsort()
         self.im_files = [self.im_files[i] for i in irect]
+        self.imir_files = [self.imir_files[i] for i in irect]
         self.labels = [self.labels[i] for i in irect]
         ar = ar[irect]
 
@@ -308,3 +414,23 @@ class BaseDataset(Dataset):
             ```
         """
         raise NotImplementedError
+    def get_irlabels(self):
+            """
+            Users can customize their own format here.
+
+            Note:
+                Ensure output is a dictionary with the following keys:
+                ```python
+                dict(
+                    im_file=im_file,
+                    shape=shape,  # format: (height, width)
+                    cls=cls,
+                    bboxes=bboxes, # xywh
+                    segments=segments,  # xy
+                    keypoints=keypoints, # xy
+                    normalized=True, # or False
+                    bbox_format="xyxy",  # or xywh, ltwh
+                )
+                ```
+            """
+            raise NotImplementedError

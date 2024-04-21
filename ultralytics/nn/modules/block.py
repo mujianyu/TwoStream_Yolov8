@@ -37,8 +37,23 @@ __all__ = (
     "CBFuse",
     "CBLinear",
     "Silence",
+    "Concat2",
+    "ADD",
+
 )
 
+class Concat2(nn.Module):
+    # Concatenate a list of tensors along dimension
+    def __init__(self, c1,c2,dimension=1):
+        super().__init__()
+        self.d = dimension#沿着哪个维度进行拼接
+        self.conv=nn.Conv2d(c1,c2,1,1,bias=False)
+
+    def forward(self, x):
+        x=torch.cat(x, self.d)
+        x=self.conv(x)
+        return x
+    
 
 class DFL(nn.Module):
     """
@@ -338,6 +353,19 @@ class Bottleneck(nn.Module):
     def forward(self, x):
         """'forward()' applies the YOLO FPN to input data."""
         return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+    
+
+class ADD(nn.Module):
+    #  Add two tensors
+    
+    def __init__(self, arg):
+        super(ADD,self).__init__()
+        # 128 256 512
+        self.arg = arg
+  
+    def forward(self, x):
+        return torch.add(x[0], x[1])
+
 
 
 class BottleneckCSP(nn.Module):

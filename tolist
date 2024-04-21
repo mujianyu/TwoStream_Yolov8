@@ -1,0 +1,3 @@
+augment需要修改
+/home/mjy/ultralytics/ultralytics/data/augment.py
+第900行禁用了augment transform
