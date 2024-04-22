@@ -38,7 +38,7 @@ def process_images(path, model):
     cv2.imwrite("result1.jpg",imgs[0])
     cv2.imwrite("result2.jpg",imgs[1])
     # 第一个是 rgb ir 第二个是ir
-    # mask = imgs[0].copy()
+    mask = imgs[0].copy()
     
 
     
@@ -57,7 +57,7 @@ def process_images(path, model):
         pt1, pt2 = (np.int_([pos[0] - pos[2] / 2, pos[1] - pos[3] / 2]),
                     np.int_([pos[0] + pos[2] / 2, pos[1] + pos[3] / 2]))
         color = [0, 0, 255] if cls_value == 0 else [0, 255, 0]
-        cv2.rectangle(mask, tuple(pt1), tuple(pt2), color, 2)
+    cv2.rectangle(mask, tuple(pt1), tuple(pt2), color, 2)
 
     res_ = "Yes" if np.any(cls_ == 1) else "No"
     print(res_)
