@@ -48,6 +48,13 @@ from .block import (
     Silence,
     Concat2,
     ADD,
+    SimAM,
+    ShuffleAttention,
+    GAM_Attention,
+    CBAM2,
+    CoordAtt,
+    ECA,
+    SEAttention,
 )
 from .conv import (
     CBAM,

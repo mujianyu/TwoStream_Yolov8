@@ -51,6 +51,13 @@ from ultralytics.nn.modules import (
     WorldDetect,
     Concat2,
     ADD,
+    ShuffleAttention,
+    SimAM,
+    GAM_Attention,
+    CBAM2,
+    CoordAtt,
+    ECA,
+    SEAttention,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -948,13 +955,42 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m is ADD:
 #            print("ch[f]", f, ch[f[0]])
             c2 = ch[f[0]]
-            args = [c2]          
+            args = [c2]  
+        elif m is ShuffleAttention:
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2] 
+        elif m is SimAM:
+          
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2]    
+        elif m is GAM_Attention:
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2] 
         elif m is Concat2:
             
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
             args = [c1,c2]
-
+        elif m is SEAttention:
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2]
+        elif m is ECA:
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2]
+                        
+        elif m is CBAM2:
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2]
+        elif m is CoordAtt:
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2]
         elif m is AIFI:
             args = [ch[f], *args]
         elif m in {HGStem, HGBlock}:
@@ -981,6 +1017,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1, c2, *args[1:]]
         elif m is CBFuse:
             c2 = ch[f[-1]]
+   
         else:
             c2 = ch[f]
 

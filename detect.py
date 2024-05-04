@@ -49,7 +49,7 @@ def process_images(path, model):
 
 
 
-    result = model.predict(imgs)
+    result = model.predict(imgs,visualize=True)
     cls, xywh = result[0].boxes.cls, result[0].boxes.xywh
     cls_, xywh_ = cls.detach().cpu().numpy(), xywh.detach().cpu().numpy()
 
