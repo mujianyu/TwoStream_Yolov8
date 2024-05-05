@@ -59,7 +59,8 @@ from ultralytics.nn.modules import (
     ECA,
     SEAttention,
     CBAM2,
-    S2Attention
+    S2Attention,
+    SKAttention
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -937,6 +938,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             DWConvTranspose2d,
             C3x,
             RepC3,
+
         }:
             c1, c2 = ch[f], args[0]
             if f==-4:
@@ -962,7 +964,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
             args = [c1,c2] 
-                        
+        elif m in {SKAttention}:
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2] 
         elif m is ShuffleAttention:
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]

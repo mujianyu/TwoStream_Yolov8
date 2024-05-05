@@ -56,6 +56,7 @@ from .block import (
     CoordAtt,
     ECA,
     SEAttention,
+    SKAttention,
 
 )
 from .conv import (
