@@ -47,6 +47,7 @@ from .block import (
     ResNetLayer,
     Silence,
     Concat2,
+    S2Attention,
     ADD,
     SimAM,
     ShuffleAttention,
@@ -55,6 +56,7 @@ from .block import (
     CoordAtt,
     ECA,
     SEAttention,
+
 )
 from .conv import (
     CBAM,
