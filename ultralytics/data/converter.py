@@ -374,38 +374,29 @@ def convert_dota_to_yolo_obb(dota_root_path: str):
 
     # Class names to indices mapping
     class_mapping = {
-        "plane": 0,
-        "ship": 1,
-        "storage-tank": 2,
-        "baseball-diamond": 3,
-        "tennis-court": 4,
-        "basketball-court": 5,
-        "ground-track-field": 6,
-        "harbor": 7,
-        "bridge": 8,
-        "large-vehicle": 9,
-        "small-vehicle": 10,
-        "helicopter": 11,
-        "roundabout": 12,
-        "soccer-ball-field": 13,
-        "swimming-pool": 14,
-        "container-crane": 15,
-        "airport": 16,
-        "helipad": 17,
+        "van" : 0,
+        "car" : 1,
+        "truck" : 2,
+        "bus" : 3,
+        "feright_car": 4
     }
 
     def convert_label(image_name, image_width, image_height, orig_label_dir, save_dir):
         """Converts a single image's DOTA annotation to YOLO OBB format and saves it to a specified directory."""
         orig_label_path = orig_label_dir / f"{image_name}.txt"
         save_path = save_dir / f"{image_name}.txt"
-
+     
         with orig_label_path.open("r") as f, save_path.open("w") as g:
+            
             lines = f.readlines()
             for line in lines:
                 parts = line.strip().split()
                 if len(parts) < 9:
                     continue
                 class_name = parts[8]
+
+                if(class_mapping.get(class_name)==None):
+                    continue
                 class_idx = class_mapping[class_name]
                 coords = [float(p) for p in parts[:8]]
                 normalized_coords = [
@@ -423,11 +414,12 @@ def convert_dota_to_yolo_obb(dota_root_path: str):
 
         image_paths = list(image_dir.iterdir())
         for image_path in TQDM(image_paths, desc=f"Processing {phase} images"):
-            if image_path.suffix != ".png":
-                continue
+            # if image_path.suffix != ".png" or ".jpg":
+            #     continue
             image_name_without_ext = image_path.stem
             img = cv2.imread(str(image_path))
             h, w = img.shape[:2]
+            
             convert_label(image_name_without_ext, w, h, orig_label_dir, save_dir)
 
 

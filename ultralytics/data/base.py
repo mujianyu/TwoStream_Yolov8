@@ -180,15 +180,14 @@ class BaseDataset(Dataset):
             if im is None:
                 raise FileNotFoundError(f"Image Not Found {f}")
 
-
-            im = np.dstack((im, imir))
             # import matplotlib.pyplot as plt  
 
-            # plt.imshow(im[:,:,:3])
+            # plt.imshow(im)
             # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'rgb.jpg')
             # plt.close()
 
-            # cv2.imwrite('/home/mjy/ultralytics/images/'+str(i)+'ir.jpg', im[:,:,3:]) #保存
+            # cv2.imwrite('/home/mjy/ultralytics/images/'+str(i)+'ir.jpg', imir) #保存
+            im = np.dstack((im, imir))
             h0, w0 = im.shape[:2]  # orig hw
             if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
                 r = self.imgsz / max(h0, w0)  # ratio

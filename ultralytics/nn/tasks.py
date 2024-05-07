@@ -60,7 +60,9 @@ from ultralytics.nn.modules import (
     SEAttention,
     CBAM2,
     S2Attention,
-    SKAttention
+    SKAttention,
+    GLF,
+    NAM
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -342,10 +344,10 @@ class DetectionModel(BaseModel):
         if isinstance(m, Detect):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             s = 256  # 2x min stride
             m.inplace = self.inplace
-
+  
             forward = lambda x: self.forward(x)[0] if isinstance(m, (Segment, Pose, OBB)) else self.forward(x)
             #计算步长修改
-            m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(1, 6, s, s))])  # forward
+            m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(2, 6, s, s))])  # forward
             self.stride = m.stride
             m.bias_init()  # only run once
         else:
@@ -964,7 +966,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
             args = [c1,c2] 
-        elif m in {SKAttention}:
+        elif m in {SKAttention,GLF,NAM}:
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
             args = [c1,c2] 

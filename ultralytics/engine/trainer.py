@@ -703,6 +703,9 @@ class BaseTrainer:
         self.resume = resume
 
     def resume_training(self, ckpt):
+        
+        #ckpt = torch.load('runs/obb/train/weights/last.pt')
+
         """Resume YOLO training from given epoch and best fitness."""
         if ckpt is None or not self.resume:
             return

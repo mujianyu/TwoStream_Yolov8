@@ -153,7 +153,7 @@ class BaseValidator:
             self.stride = model.stride  # used in get_dataloader() for padding
             
             #ir图像位置
-            irpath='/home/mjy/ultralytics/datasets/rgbir/image/val'
+            irpath='/home/mjy/ultralytics/datasets/OBB/image/val'
 
             self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split),irpath, self.args.batch)
 

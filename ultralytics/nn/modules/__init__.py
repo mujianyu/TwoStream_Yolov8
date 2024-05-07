@@ -55,8 +55,10 @@ from .block import (
     CBAM2,
     CoordAtt,
     ECA,
+    NAM,
     SEAttention,
     SKAttention,
+    GLF
 
 )
 from .conv import (

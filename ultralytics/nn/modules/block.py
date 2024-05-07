@@ -48,7 +48,9 @@ __all__ = (
     "SEAttention",
     "CBAM2",
     "S2Attention",
-    "SKAttention"
+    "SKAttention",
+    "GLF",
+    "NAM"
 )
 import numpy as np
 import torch
@@ -95,8 +97,82 @@ class SplitAttention(nn.Module):
         out=attention*x_all 
         out=torch.sum(out,1).reshape(b,h,w,c)
         return out
+#NAM
+class NAM(nn.Module):
+    def __init__(self, channels,c2, t=16):
+        super(NAM, self).__init__()
+        self.channels = channels
+        self.conv=Conv(channels,c2,1,1)
+        self.bn2 = nn.BatchNorm2d(self.channels, affine=True)
+ 
+    def forward(self, x):
+        x=torch.cat(x,1)
+        residual = x
+        x = self.bn2(x)
+        weight_bn = self.bn2.weight.data.abs() / torch.sum(self.bn2.weight.data.abs())
+        x = x.permute(0, 2, 3, 1).contiguous()
+        x = torch.mul(weight_bn, x)
+        x = x.permute(0, 3, 1, 2).contiguous()
+        x = torch.sigmoid(x) * residual  #
+        x=self.conv(x)
+        return x
+    
+    
+class GLF(nn.Module):
+
+    def __init__(self, c1,c2,channel=512, reduction=16):
+        super().__init__()
+        channel=c1
+        self.conv=Conv(c1,c2,1,1)
+        self.d=1
+
+        self.avg_pool = nn.AdaptiveAvgPool2d(1) #全局池化
+        # 全局特征提取
+        self.fc1 = nn.Sequential(
+         
+            nn.Conv2d(channel, channel // reduction,1,1),
+            nn.BatchNorm2d(channel // reduction),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channel // reduction, channel,1,1),
+            nn.BatchNorm2d(channel ),
+            nn.Sigmoid()
+        )
+        # 局部特征提取
+        self.fc2 = nn.Sequential(
+            nn.Conv2d(channel, channel // reduction,1,1),
+            nn.BatchNorm2d(channel // reduction),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channel // reduction, channel,1,1),
+            nn.BatchNorm2d(channel),
+        )
+
+
+
+    def forward(self, x):
+        x=torch.cat(x, self.d)
+        b, c, _, _ = x.size()
+        
+        # 全局特征mul
+        y = self.avg_pool(x)
+        y = self.fc1(y).view(b, c, 1, 1)
+
+        #局部特征
+        y1= self.fc2(x)
+
+        x=x * y.expand_as(x) 
+        #局部特征add
+        x=torch.add(x, y1)
+        
+        x=self.conv(x)
+
+        return x
+    
+
+
+
 
 from collections import OrderedDict
+
 
 class SKAttention(nn.Module):
 
