@@ -11,9 +11,10 @@
 # path: /home/mjy/ultralytics/datasets/coco8 # dataset root dir
 train: /home/mjy/ultralytics/datasets/OBB/images/train # train images (relative to 'path') 4 images
 val: /home/mjy/ultralytics/datasets/OBB/images/val # val images (relative to 'path') 4 images
+# val: /home/mjy/ultralytics/datasets/OBB/images/test
 train_ir: /home/mjy/ultralytics/datasets/OBB/image/train # train images (relative to 'path') 4 images
 val_ir: /home/mjy/ultralytics/datasets/OBB/image/val # val images (relative to 'path') 4 images
-
+# val_ir: /home/mjy/ultralytics/datasets/OBB/image/test
 test: # test images (optional)
 
 # Classes

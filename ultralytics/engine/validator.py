@@ -78,6 +78,7 @@ class BaseValidator:
         """
         self.args = get_cfg(overrides=args)
         self.dataloader = dataloader
+   
         self.pbar = pbar
         self.stride = None
         self.data = None
@@ -153,9 +154,9 @@ class BaseValidator:
             self.stride = model.stride  # used in get_dataloader() for padding
             
             #ir图像位置
-            irpath='/home/mjy/ultralytics/datasets/OBB/image/val'
+            # irpath='/home/mjy/ultralytics/datasets/OBB/image/val'
 
-            self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split),irpath, self.args.batch)
+            self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split),self.data.get("val_ir"), self.args.batch)
 
             model.eval()
             model.warmup(imgsz=(1 if pt else self.args.batch, 6, imgsz, imgsz))  # warmup

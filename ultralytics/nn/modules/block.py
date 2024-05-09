@@ -315,6 +315,7 @@ class CBAM2(nn.Module):
         x=self.conv(out)
         return x
     
+    
 
 class SEAttention(nn.Module):
 
