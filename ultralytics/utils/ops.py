@@ -174,6 +174,8 @@ def non_max_suppression(
     max_wh=7680,
     in_place=True,
     rotated=False,
+    angle=None,
+    heat=False
 ):
     """
     Perform non-maximum suppression (NMS) on a set of boxes, with support for masks and multiple labels per box.
@@ -214,6 +216,7 @@ def non_max_suppression(
         prediction = prediction[0]  # select only inference output
 
     bs = prediction.shape[0]  # batch size
+
     nc = nc or (prediction.shape[1] - 4)  # number of classes
     nm = prediction.shape[1] - nc - 4
     mi = 4 + nc  # mask start index
@@ -251,11 +254,17 @@ def non_max_suppression(
             continue
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        box, cls, mask = x.split((4, nc, nm), 1)
-
+        if heat==True:
+            nc=nc-1
+            box, cls,rotate, mask = x.split((4, nc, 1,nm), 1)
+        else:
+            box, cls, mask = x.split((4, nc,nm), 1)
         if multi_label:
             i, j = torch.where(cls > conf_thres)
             x = torch.cat((box[i], x[i, 4 + j, None], j[:, None].float(), mask[i]), 1)
+        elif heat==True:
+            conf, j = cls.max(1, keepdim=True)
+            x = torch.cat((box, conf, j.float(), rotate,mask), 1)[conf.view(-1) > conf_thres]            
         else:  # best class only
             conf, j = cls.max(1, keepdim=True)
             x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
