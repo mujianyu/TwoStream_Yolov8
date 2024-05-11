@@ -324,7 +324,7 @@ class BaseModel(nn.Module):
 
 class DetectionModel(BaseModel):
     """YOLOv8 detection model."""
-
+    
     def __init__(self, cfg="yolov8n.yaml", ch=3, nc=None, verbose=True):  # model, input channels, number of classes
         """Initialize the YOLOv8 detection model with the given config and parameters."""
         super().__init__()
@@ -335,6 +335,7 @@ class DetectionModel(BaseModel):
         if nc and nc != self.yaml["nc"]:
             LOGGER.info(f"Overriding model.yaml nc={self.yaml['nc']} with nc={nc}")
             self.yaml["nc"] = nc  # override YAML value
+        
         self.model, self.save = parse_model(deepcopy(self.yaml), ch=ch, verbose=verbose)  # model, savelist
         self.names = {i: f"{i}" for i in range(self.yaml["nc"])}  # default names dict
         self.inplace = self.yaml.get("inplace", True)
@@ -358,7 +359,10 @@ class DetectionModel(BaseModel):
         if verbose:
             self.info()
             LOGGER.info("")
+        
 
+    
+    
     def _predict_augment(self, x):
         """Perform augmentations on input image x and return augmented inference and train outputs."""
         img_size = x.shape[-2:]  # height, width
@@ -407,6 +411,7 @@ class OBBModel(DetectionModel):
         """Initialize YOLOv8 OBB model with given config and parameters."""
         super().__init__(cfg=cfg, ch=ch, nc=nc, verbose=verbose)
 
+ 
     def init_criterion(self):
         """Initialize the loss criterion for the model."""
         return v8OBBLoss(self)
