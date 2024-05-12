@@ -58,8 +58,9 @@ from .block import (
     NAM,
     SEAttention,
     SKAttention,
-    GLF
-
+    GLF,
+    GLCBAM,
+    GCBAM,
 )
 from .conv import (
     CBAM,

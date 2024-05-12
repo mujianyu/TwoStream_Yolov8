@@ -46,11 +46,12 @@ __all__ = (
     "CoordAtt",
     "ECA",
     "SEAttention",
-    "CBAM2",
+    "GLCBAM",
     "S2Attention",
     "SKAttention",
     "GLF",
-    "NAM"
+    "NAM",
+    "GCBAM"
 )
 import numpy as np
 import torch
@@ -315,6 +316,137 @@ class CBAM2(nn.Module):
         x=self.conv(out)
         return x
     
+
+
+
+
+    
+class GCBAM(nn.Module):
+
+    def __init__(self,c1,c2, channel=512, reduction=16):
+        super().__init__()
+        self.conv=Conv(c1,c2,1,1)
+        channel=c1
+        
+        self.channel_attention = ChannelAttentionModule(c1)
+        self.spatial_attention = SpatialAttentionModule()
+
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    @staticmethod
+    def channel_shuffle(x, groups):
+        b, c, h, w = x.shape
+
+        x = x.reshape(b, groups, -1, h, w)
+        x = x.permute(0, 2, 1, 3, 4)
+        # flatten
+        x = x.reshape(b, -1, h, w)
+
+        return x
+
+    def forward(self, x):
+        x=torch.cat(x,dim=1)
+        b, c, h, w = x.size()
+        # group into subfeatures
+
+        # x = x.view(b * self.G, -1, h, w)  # bs*G,c//G,h,w
+
+        # channel_split
+        # x_0, x_1 = x.chunk(2, dim=1)  # bs*G,c//(2*G),h,w
+
+        # # channel attention
+        # x_channel = self.avg_pool(x_0)  # bs*G,c//(2*G),1,1
+        # x_channel = self.cweight * x_channel + self.cbias  # bs*G,c//(2*G),1,1
+        # x_channel = x_0 * self.sigmoid(x_channel)
+
+        # # spatial attention
+        # x_spatial = self.gn(x_1)  # bs*G,c//(2*G),h,w
+        # x_spatial = self.sweight * x_spatial + self.sbias  # bs*G,c//(2*G),h,w
+        # x_spatial = x_1 * self.sigmoid(x_spatial)  # bs*G,c//(2*G),h,w
+
+        x_channel=self.channel_attention(x) * x
+        
+        out=self.spatial_attention(x_channel) * x_channel
+        # concatenate along channel axis
+        # out = torch.cat([x_channel, x_spatial], dim=1) 
+        # out = out.contiguous().view(b, -1, h, w)
+        # channel shuffle
+        out = self.channel_shuffle(out, 2)
+        
+        out=self.conv(out)
+        return out
+    
+    
+# 局部CBAM
+class GLCBAM(nn.Module):
+    def __init__(self, c1,c2):
+        super(GLCBAM, self).__init__()
+        self.conv=Conv(c1,c2,1,1)
+        self.d=1 
+        self.channel_attention = ChannelAttentionModule(c1)
+        self.spatial_attention = SpatialAttentionModule()
+        mid_channel=c1//16
+        
+        #局部特征
+        self.localConv = nn.Sequential(          
+            nn.Conv2d(in_channels=c1, out_channels=mid_channel,kernel_size=1,stride=1,bias=False),
+            nn.BatchNorm2d(mid_channel),
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(in_channels=mid_channel, out_channels=c1,kernel_size=1,stride=1,bias=False),
+            nn.BatchNorm2d(c1),
+        )
+
+    def forward(self, x):
+        x=torch.cat(x, self.d) 
+        y=x
+        out = self.channel_attention(x) * x
+        out = self.spatial_attention(out) * out
+        
+        local=self.localConv(y)
+        out=torch.add(local,out)
+        
+        x=self.conv(out)
+
+        return x
+
+
+class SACBAM(nn.Module):
+    def __init__(self, c1,c2):
+        super(SACBAM, self).__init__()
+        self.conv=Conv(c1,c2,1,1)
+        self.d=1 
+        self.channel_attention = ChannelAttentionModule(c1)
+        self.spatial_attention = SpatialAttentionModule()
+        self.SA=ShuffleAttention(c1,c2)
+        mid_channel=c1//16
+        
+ 
+
+    def forward(self, x):
+        x=torch.cat(x, self.d) 
+        y=x
+        out = self.channel_attention(x) * x
+        out = self.spatial_attention(out) * out
+        
+        local=self.SA(y)
+        out=torch.add(local,out)
+    
+        x=self.conv(out)
+
+        return x
     
 
 class SEAttention(nn.Module):
@@ -670,6 +802,11 @@ class ShuffleAttention(nn.Module):
         return out
 
 
+
+
+
+
+        
 class DFL(nn.Module):
     """
     Integral module of Distribution Focal Loss (DFL).
