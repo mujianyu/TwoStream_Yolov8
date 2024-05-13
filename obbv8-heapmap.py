@@ -315,7 +315,7 @@ class yolov8_heatmap:
         
 def get_params():
     params = {
-        'weight': '/home/mjy/ultralytics/runs/obb/3IR/weights/best.pt', # 现在只需要指定权重即可,不需要指定cfg
+        'weight': '/home/mjy/ultralytics/runs/obb/CBAM/weights/best.pt', # 现在只需要指定权重即可,不需要指定cfg
         'device': 'cuda:0',
         'method': 'GradCAM', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
         'layer': [20],

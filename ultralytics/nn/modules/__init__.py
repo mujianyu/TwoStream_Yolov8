@@ -61,6 +61,7 @@ from .block import (
     GLF,
     GLCBAM,
     GCBAM,
+    SACBAM,
 )
 from .conv import (
     CBAM,

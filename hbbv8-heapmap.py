@@ -162,7 +162,7 @@ class yolov8_heatmap:
             x1, y1 = max(x1, 0), max(y1, 0)
             x2, y2 = min(grayscale_cam.shape[1] - 1, x2), min(grayscale_cam.shape[0] - 1, y2)
             renormalized_cam[y1:y2, x1:x2] = scale_cam_image(grayscale_cam[y1:y2, x1:x2].copy())    
-        #renormalized_cam = scale_cam_image(grayscale_cam.copy())    
+        renormalized_cam = scale_cam_image(grayscale_cam.copy())    
         renormalized_cam = scale_cam_image(renormalized_cam)
         eigencam_image_renormalized = show_cam_on_image(image_float_np, renormalized_cam, use_rgb=True)
         return eigencam_image_renormalized
@@ -233,7 +233,7 @@ def get_params():
         'weight': '/home/mjy/ultralytics/runs/detect/CBAM/weights/best.pt', # 现在只需要指定权重即可,不需要指定cfg
         'device': 'cuda:0',
         'method': 'GradCAM', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
-        'layer': [20],
+        'layer': [14],
         'backward_type': 'all', # class, box, all
         'conf_threshold': 0.2, # 0.2
         'ratio': 0.02, # 0.02-0.1

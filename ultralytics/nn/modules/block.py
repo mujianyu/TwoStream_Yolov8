@@ -51,7 +51,8 @@ __all__ = (
     "SKAttention",
     "GLF",
     "NAM",
-    "GCBAM"
+    "GCBAM",
+    "SACBAM"
 )
 import numpy as np
 import torch
@@ -318,6 +319,54 @@ class CBAM2(nn.Module):
     
 
 
+class SACBAM(nn.Module):
+
+    def __init__(self,c1,c2, channel=512, reduction=16):
+        super().__init__()
+        self.conv=Conv(c1,c2,1,1)
+        channel=c1
+        
+        self.channel_attention = ChannelAttentionModule(c1)
+        self.spatial_attention = SpatialAttentionModule()
+
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    @staticmethod
+    def channel_shuffle(x, groups):
+        b, c, h, w = x.shape
+
+        x = x.reshape(b, groups, -1, h, w)
+        x = x.permute(0, 2, 1, 3, 4)
+        
+
+
+        # flatten
+        x = x.reshape(b, -1, h, w)
+
+        return x
+
+    def forward(self, x):
+        x=torch.cat(x,dim=1)
+
+        x = self.channel_shuffle(x, 2)
+        x_channel=self.channel_attention(x) * x
+        out=self.spatial_attention(x_channel) * x_channel
+        out=self.conv(out)
+        return out
+    
 
 
     
@@ -352,6 +401,9 @@ class GCBAM(nn.Module):
 
         x = x.reshape(b, groups, -1, h, w)
         x = x.permute(0, 2, 1, 3, 4)
+        
+
+
         # flatten
         x = x.reshape(b, -1, h, w)
 
@@ -385,7 +437,6 @@ class GCBAM(nn.Module):
         # out = out.contiguous().view(b, -1, h, w)
         # channel shuffle
         out = self.channel_shuffle(out, 2)
-        
         out=self.conv(out)
         return out
     
