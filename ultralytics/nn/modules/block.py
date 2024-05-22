@@ -316,6 +316,8 @@ class CBAM2(nn.Module):
         out = self.spatial_attention(out) * out
         x=self.conv(out)
         return x
+
+
     
 
 
