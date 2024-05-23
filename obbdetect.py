@@ -4,6 +4,8 @@ import numpy as np
 from ultralytics.data.augment import LetterBox
 from ultralytics.nn.autobackend import AutoBackend
 
+from ultralytics import YOLO
+
 def preprocess_letterbox(image):
     letterbox = LetterBox(new_shape=1024, stride=32, auto=True)
     image = letterbox(image=image)
@@ -80,6 +82,7 @@ def probiou(obb1, obb2, eps=1e-7):
 
 def NMS(boxes, iou_thres):
 
+  
     remove_flags = [False] * len(boxes)
 
     keep_boxes = []
@@ -104,15 +107,21 @@ def postprocess1(pred, IM=[], conf_thres=0.25, iou_thres=0.45):
     # 输入是模型推理的结果，即21504个预测框
     # 1,21504,20 [cx,cy,w,h,class*15,rotated]
     boxes = []
-    for item in pred:
+    
+    for item in pred[0]:
         cx, cy, w, h = item[:4]
         angle = item[-1]
         label = item[4:-1].argmax()
         confidence = item[4 + label]
+        if(confidence>0.26):
+            print(confidence>0.25)
+        
         if confidence < conf_thres:
             continue
         boxes.append([cx, cy, w, h, angle, confidence, label])
 
+    if(len(boxes)==0):
+        return []
     boxes = np.array(boxes)
     cx = boxes[:, 0]
     cy = boxes[:, 1]
@@ -153,32 +162,85 @@ def random_color(id):
     s_plane = (((id << 3) ^ 0x315793) % 100) / 100.0
     return hsv2bgr(h_plane, s_plane, 1)
 
-if __name__ == "__main__":
+import os
 
-    img = cv2.imread("/home/mjy/ultralytics/datasets/OBB/images/train/00002.jpg")
+def load_model(weights_path, device):
+    if not os.path.exists(weights_path):
+        print("Model weights not found!")
+        exit()
+    model = YOLO(weights_path).to(device)
+    model.fuse()
+    model.info(verbose=False)
+    return model
+
+def detecttwoStream():
+    img = cv2.imread("/home/mjy/ultralytics/datasets/OBB/images/train/00011.jpg")
     imgr=img
-    irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBB/image/train/00002.jpg")
+    irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBB/image/train/00011.jpg")
     # img_pre = preprocess_letterbox(img)
     img=np.concatenate((img,irimg),axis=2)
 
     img_pre, IM = preprocess_warpAffine(img)
-    
-    model  = AutoBackend(weights="/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx")
-    names  = model.names
-    result = model(img_pre)[0] # 4类别 x, y, w,h,, 
-    result=result.transpose(-1, -2)  # 1,21504,20
+    # img_pre=img_pre[0]
+    # img_pre=np.array(img_pre)
+    # img_pre=img_pre.transpose(1,2 , 0)
+    # cv2.imwrite("./detect/infer-obbir.jpg", img_pre[...,:3]*255)
+    # cv2.imwrite("./detect/infer-obbRGB.jpg", img_pre[...,3:]*255)
 
-    boxes   = postprocess1(result, IM)
-    confs   = [box[5] for box in boxes]
-    classes = [int(box[6]) for box in boxes]
-    boxes   = xywhr2xyxyxyxy(np.array(boxes)[..., :5])
+
+
+    # model  = AutoBackend(weights="/home/mjy/ultralytics/runs/obb/CBAM/weights/best.pt")
+
     
+    # names  = model.names
+    # result = model(img_pre)[0] # 4类别 x, y, w,h,, 
+    # result=result.transpose(-1, -2)  # 1,21504,20
+    
+    # boxes   = postprocess1(result, IM)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
+    model = load_model("/home/mjy/ultralytics/runs/obb/3IR/weights/best.pt", device)
+
+    # model=YOLO("/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx").to(device)
+    result = model.predict(img,save=True,imgsz=640,visualize=False,obb=True)
+    
+
+
+    # import onnxruntime
+    # # img_pre=img_pre.to(torch.float32)  
+    # cuda=True
+    # providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if cuda else ["CPUExecutionProvider"]
    
+    # session = onnxruntime.InferenceSession("/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx", providers=providers)
+    # output_names = [x.name for x in session.get_outputs()]
+    # metadata = session.get_modelmeta().custom_metadata_map
+    # img_pre = img_pre.cpu().numpy()  # torch to numpy
+    # result = session.run(output_names, {session.get_inputs()[0].name: img_pre})[0]
+    # result=result.transpose(0,2,1)
+      # 1,21504,20
+
+    # boxes   = postprocess1(result, IM)
+
+    conf,cls, xywhr = result[0].obb.conf,result[0].obb.cls, result[0].obb.xywhr
+    
+    # cls, xywh = result[0].boxes.cls, result[0].boxes.xywh
+    #  xywh, r, conf, cls
+    confs,classes, xywhr_ = conf.detach().cpu().numpy(),cls.detach().cpu().numpy(), xywhr.detach().cpu().numpy()
+
+    #box[5] for box in boxes
+
+    # confs   = []
+    # classes = []
+
+    boxes   = xywhr2xyxyxyxy(np.array(xywhr_))
+    
+    names =[ 'van','car','truck','bus','freight car']
+
     img=irimg
     
     for i, box in enumerate(boxes):
         confidence = confs[i]
-        label = classes[i]
+        label = int(classes[i])
         color = random_color(label)
         
         cv2.polylines(img[...,:3], [np.asarray(box, dtype=int)], True, color, 2)
@@ -196,3 +258,7 @@ if __name__ == "__main__":
     cv2.imwrite("./detect/infer-obbir.jpg", img)
     cv2.imwrite("./detect/infer-obbRGB.jpg", imgr)
     print("save done")
+
+
+if __name__ == "__main__":
+    detecttwoStream()

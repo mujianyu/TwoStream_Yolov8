@@ -254,7 +254,7 @@ def non_max_suppression(
             continue
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        if heat==True:
+        if heat==True :
             nc=nc-1
             box, cls,rotate, mask = x.split((4, nc, 1,nm), 1)
         else:
@@ -268,7 +268,8 @@ def non_max_suppression(
         else:  # best class only
             conf, j = cls.max(1, keepdim=True)
             x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
-
+         
+         # x y w h conf cls r
         # Filter by class
         if classes is not None:
             x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
@@ -302,12 +303,12 @@ def non_max_suppression(
         #     redundant = True  # require redundant detections
         #     if redundant:
         #         i = i[iou.sum(1) > 1]  # require redundancy
-
+    
         output[xi] = x[i]
         if (time.time() - t) > time_limit:
             LOGGER.warning(f"WARNING ⚠️ NMS time limit {time_limit:.3f}s exceeded")
             break  # time limit exceeded
-
+  
     return output
 
 
