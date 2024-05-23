@@ -184,18 +184,22 @@ class Annotator:
         else:  # cv2
             if rotated:
                 p1 = [int(b) for b in box[0]]
+                img = self.im[...,:3].astype(np.float32)
                 # NOTE: cv2-version polylines needs np.asarray type.
-                cv2.polylines(self.im, [np.asarray(box, dtype=int)], True, color, self.lw)
+                cv2.polylines(img, [np.asarray(box, dtype=int)], True, color, self.lw)
             else:
                 p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-                cv2.rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
+                # rgb
+                img = self.im[...,:3].astype(np.float32)
+                cv2.rectangle(img, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
             if label:
                 w, h = cv2.getTextSize(label, 0, fontScale=self.sf, thickness=self.tf)[0]  # text width, height
                 outside = p1[1] - h >= 3
                 p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-                cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
+                img = self.im[...,:3].astype(np.float32)
+                cv2.rectangle(img, p1, p2, color, -1, cv2.LINE_AA)  # filled
                 cv2.putText(
-                    self.im,
+                    img,
                     label,
                     (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
                     0,
@@ -204,6 +208,8 @@ class Annotator:
                     thickness=self.tf,
                     lineType=cv2.LINE_AA,
                 )
+                
+                
 
     def masks(self, masks, colors, im_gpu, alpha=0.5, retina_masks=False):
         """

@@ -12,7 +12,7 @@ def preprocess_letterbox(image):
     image = torch.from_numpy(image)
     return image
 
-def preprocess_warpAffine(image, dst_width=1024, dst_height=1024):
+def preprocess_warpAffine(image, dst_width=640, dst_height=640):
     scale = min((dst_width / image.shape[1], dst_height / image.shape[0]))
     ox = (dst_width  - scale * image.shape[1]) / 2
     oy = (dst_height - scale * image.shape[0]) / 2
@@ -104,7 +104,7 @@ def postprocess1(pred, IM=[], conf_thres=0.25, iou_thres=0.45):
     # 输入是模型推理的结果，即21504个预测框
     # 1,21504,20 [cx,cy,w,h,class*15,rotated]
     boxes = []
-    for item in pred[0]:
+    for item in pred:
         cx, cy, w, h = item[:4]
         angle = item[-1]
         label = item[4:-1].argmax()
@@ -153,35 +153,46 @@ def random_color(id):
     s_plane = (((id << 3) ^ 0x315793) % 100) / 100.0
     return hsv2bgr(h_plane, s_plane, 1)
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-#     img = cv2.imread("/home/mjy/ultralytics/datasets/OBB/images/train/00002.jpg")
-#     irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBB/image/train/00002.jpg")
-#     # img_pre = preprocess_letterbox(img)
-#     img=np.concatenate((img,irimg),axis=2)
+    img = cv2.imread("/home/mjy/ultralytics/datasets/OBB/images/train/00002.jpg")
+    imgr=img
+    irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBB/image/train/00002.jpg")
+    # img_pre = preprocess_letterbox(img)
+    img=np.concatenate((img,irimg),axis=2)
 
-#     img_pre, IM = preprocess_warpAffine(img)
-#     model  = AutoBackend(weights="/home/mjy/ultralytics/runs/obb/3IR/weights/best.pt")
-#     names  = model.names
-#     result = model(img_pre)[0].transpose(-1, -2)  # 1,21504,20
-
-#     boxes   = postprocess1(result, IM)
-#     confs   = [box[5] for box in boxes]
-#     classes = [int(box[6]) for box in boxes]
-#     boxes   = xywhr2xyxyxyxy(np.array(boxes)[..., :5])
-
-#     img=irimg
-#     for i, box in enumerate(boxes):
-#         confidence = confs[i]
-#         label = classes[i]
-#         color = random_color(label)
-        
-#         cv2.polylines(img[...,:3], [np.asarray(box, dtype=int)], True, color, 2)
-#         caption = f"{names[label]} {confidence:.2f}"
-#         w, h = cv2.getTextSize(caption, 0 ,1, 2)[0]
-#         left, top = [int(b) for b in box[0]]
-#         cv2.rectangle(img, (left - 3, top - 33), (left + w + 10, top), color, -1)
-#         cv2.putText(img, caption, (left, top - 5), 0, 1, (0, 0, 0), 2, 16)
+    img_pre, IM = preprocess_warpAffine(img)
     
-#     cv2.imwrite("infer-obb.jpg", img)
-#     print("save done")
+    model  = AutoBackend(weights="/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx")
+    names  = model.names
+    result = model(img_pre)[0] # 4类别 x, y, w,h,, 
+    result=result.transpose(-1, -2)  # 1,21504,20
+
+    boxes   = postprocess1(result, IM)
+    confs   = [box[5] for box in boxes]
+    classes = [int(box[6]) for box in boxes]
+    boxes   = xywhr2xyxyxyxy(np.array(boxes)[..., :5])
+    
+   
+    img=irimg
+    
+    for i, box in enumerate(boxes):
+        confidence = confs[i]
+        label = classes[i]
+        color = random_color(label)
+        
+        cv2.polylines(img[...,:3], [np.asarray(box, dtype=int)], True, color, 2)
+        caption = f"{names[label]} {confidence:.2f}"
+        w, h = cv2.getTextSize(caption, 0 ,1, 2)[0]
+        left, top = [int(b) for b in box[0]]
+        cv2.rectangle(img, (left - 3, top - 33), (left + w + 10, top), color, -1)
+        cv2.putText(img, caption, (left, top - 5), 0, 1, (0, 0, 0), 2, 16)
+
+        cv2.polylines(imgr[...,:3], [np.asarray(box, dtype=int)], True, color, 2)
+
+        cv2.rectangle(imgr, (left - 3, top - 33), (left + w + 10, top), color, -1)
+        cv2.putText(imgr, caption, (left, top - 5), 0, 1, (0, 0, 0), 2, 16)
+    
+    cv2.imwrite("./detect/infer-obbir.jpg", img)
+    cv2.imwrite("./detect/infer-obbRGB.jpg", imgr)
+    print("save done")

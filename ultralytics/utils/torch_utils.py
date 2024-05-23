@@ -390,6 +390,7 @@ def copy_attr(a, b, include=(), exclude=()):
 
 def get_latest_opset():
     """Return second-most (for maturity) recently supported ONNX opset by this version of torch."""
+    
     return max(int(k[14:]) for k in vars(torch.onnx) if "symbolic_opset" in k) - 1  # opset
 
 
