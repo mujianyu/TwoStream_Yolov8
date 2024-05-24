@@ -117,13 +117,13 @@ def postprocess1(pred, IM=[], conf_thres=0.25, iou_thres=0.45):
     # 1,21504,20 [cx,cy,w,h,class*15,rotated]
     boxes = []
     
-    for item in pred[0]:
+    for item in pred:
         cx, cy, w, h = item[:4]
         angle = item[-1]
         label = item[4:-1].argmax()
         confidence = item[4 + label]
-        if(confidence>0.26):
-            print(confidence>0.25)
+        
+  
         
         if confidence < conf_thres:
             continue
@@ -189,59 +189,32 @@ def detecttwoStream():
     # img_pre = preprocess_letterbox(img)
     img=np.concatenate((img,irimg),axis=2)
 
+    import onnxruntime
+
     img_pre, IM = preprocess_warpAffine(img)
-    # img_pre=img_pre[0]
-    # img_pre=np.array(img_pre)
-    # img_pre=img_pre.transpose(1,2 , 0)
-    # cv2.imwrite("./detect/infer-obbir.jpg", img_pre[...,:3]*255)
-    # cv2.imwrite("./detect/infer-obbRGB.jpg", img_pre[...,3:]*255)
-
-
-
-    # model  = AutoBackend(weights="/home/mjy/ultralytics/runs/obb/CBAM/weights/best.pt")
-
-    
+    # cv2.imwrite("1.jpg",np.array(img_pre[0][:3,...].permute(1,2,0))*255)
+    # cv2.imwrite("2.jpg",np.array(img_pre[0][3:,...].permute(1,2,0))*255)
+    # model  = AutoBackend(weights="/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx")
     # names  = model.names
-    # result = model(img_pre)[0] # 4类别 x, y, w,h,, 
-    # result=result.transpose(-1, -2)  # 1,21504,20
+    # result = model(img_pre)[0].transpose(-1, -2)  # 1,21504,20
+
+    session = onnxruntime.InferenceSession("/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx")
+    input_name = session.get_inputs()[0].name  
+    output_name = session.get_outputs()[0].name  
+
+    img_pre = img_pre.to('cpu').numpy().astype(np.float32) # array
+
+    result = torch.tensor(session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: img_pre}))[0][0].permute(1,0)
+
+    boxes   = postprocess1(result, IM)
     
-    # boxes   = postprocess1(result, IM)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
-    model = load_model("/home/mjy/ultralytics/runs/obb/3IR/weights/best.pt", device)
-
-    # model=YOLO("/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx").to(device)
-    result = model.predict(img,save=True,imgsz=(640,640),visualize=False,obb=True)
-    
+    # cv2.imwrite("1.jpg",np.array(img_pre[0][:3,...].permute(1,2,0))*255)
+    # cv2.imwrite("2.jpg",np.array(img_pre[0][3:,...].permute(1,2,0))*255)
+    confs   = [box[5] for box in boxes]
+    classes = [int(box[6]) for box in boxes]
+    boxes   = xywhr2xyxyxyxy(np.array(boxes)[..., :5])
 
 
-    # import onnxruntime
-    # # img_pre=img_pre.to(torch.float32)  
-    # cuda=True
-    # providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if cuda else ["CPUExecutionProvider"]
-   
-    # session = onnxruntime.InferenceSession("/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx", providers=providers)
-    # output_names = [x.name for x in session.get_outputs()]
-    # metadata = session.get_modelmeta().custom_metadata_map
-    # img_pre = img_pre.cpu().numpy()  # torch to numpy
-    # result = session.run(output_names, {session.get_inputs()[0].name: img_pre})[0]
-    # result=result.transpose(0,2,1)
-      # 1,21504,20
-
-    # boxes   = postprocess1(result, IM)
-
-    conf,cls, xywhr = result[0].obb.conf,result[0].obb.cls, result[0].obb.xywhr
-    
-    # cls, xywh = result[0].boxes.cls, result[0].boxes.xywh
-    #  xywh, r, conf, cls
-    confs,classes, xywhr_ = conf.detach().cpu().numpy(),cls.detach().cpu().numpy(), xywhr.detach().cpu().numpy()
-
-    #box[5] for box in boxes
-
-    # confs   = []
-    # classes = []
-
-    boxes   = xywhr2xyxyxyxy(np.array(xywhr_))
     
     names =[ 'van','car','truck','bus','freight car']
 
@@ -249,6 +222,7 @@ def detecttwoStream():
     
     for i, box in enumerate(boxes):
         confidence = confs[i]
+   
         label = int(classes[i])
         color = random_color(label)
         

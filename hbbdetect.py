@@ -60,10 +60,10 @@ def process_images(path, model):
 
     
     result = model.predict(imgs,save=True,imgsz=640,visualize=False,obb=True)
-    cls, xywh = result[0].obb.cls, result[0].obb.xywh
+    # cls, xywh = result[0].obb.cls, result[0].obb.xywh
     
-    # cls, xywh = result[0].boxes.cls, result[0].boxes.xywh
-    # cls_, xywh_ = cls.detach().cpu().numpy(), xywh.detach().cpu().numpy()
+    cls, xywh = result[0].boxes.cls, result[0].boxes.xywh
+    cls_, xywh_ = cls.detach().cpu().numpy(), xywh.detach().cpu().numpy()
 
     for pos, cls_value in zip(xywh_, cls_):
         pt1, pt2 = (np.int_([pos[0] - pos[2] / 2, pos[1] - pos[3] / 2]),
