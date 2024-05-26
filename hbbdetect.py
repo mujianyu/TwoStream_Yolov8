@@ -130,7 +130,7 @@ def main():
     print("Using device:", device)
 
     model = load_model("/home/mjy/ultralytics/runs/detect/3IR/weights/best.pt", device)
-    process_images("./images/", model)
+    process_images("../images/", model)
 
 if __name__ == "__main__":
     main()
