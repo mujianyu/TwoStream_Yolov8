@@ -16,6 +16,9 @@ xxx
     ├── train
     └── val
 ```
+images 保存的是rgb图片
+image 保存的是ir图片
+labels 公用一个标签(一般来说使用ir图片标签)
 ## 2. 权重文件下载
 <details open><summary>目标检测权重</summary>
 
