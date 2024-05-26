@@ -171,7 +171,7 @@ class yolov8_heatmap:
         method = eval(method)(model, target_layers, use_cuda=device.type == 'cuda')
         method.activations_and_grads = ActivationsAndGradients(model, target_layers, None)
         
-        colors = np.random.uniform(0, 255, size=(len(model_names), 3)).astype(np.int)
+        colors = np.random.uniform(0, 255, size=(len(model_names), 3)).astype(np.int64)
         self.__dict__.update(locals())
     
     def post_process(self, result):
@@ -330,4 +330,4 @@ def get_params():
 if __name__ == '__main__':
     model = yolov8_heatmap(**get_params())
     # model(r'/home/hjj/Desktop/dataset/dataset_visdrone/VisDrone2019-DET-test-dev/images/9999947_00000_d_0000026.jpg', 'result')
-    model(r'/home/mjy/ultralytics/datasets/OBB/images/train/00002.jpg',r'/home/mjy/ultralytics/datasets/OBB/image/train/00002.jpg', 'result')
+    model(r'/home/mjy/ultralytics/datasets/OBB/images/train/00011.jpg',r'/home/mjy/ultralytics/datasets/OBB/image/train/00011.jpg', 'result')
