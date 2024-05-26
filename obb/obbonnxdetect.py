@@ -219,10 +219,10 @@ def detecttwoStream():
     names =[ 'van','car','truck','bus','freight car']
 
     img=irimg
-    
+
     for i, box in enumerate(boxes):
         confidence = confs[i]
-   
+
         label = int(classes[i])
         color = random_color(label)
         
@@ -237,7 +237,7 @@ def detecttwoStream():
 
         cv2.rectangle(imgr, (left - 3, top - 33), (left + w + 10, top), color, -1)
         cv2.putText(imgr, caption, (left, top - 5), 0, 1, (0, 0, 0), 2, 16)
-    
+  
     cv2.imwrite("./detect/infer-obbir.jpg", img)
     cv2.imwrite("./detect/infer-obbRGB.jpg", imgr)
     print("save done")

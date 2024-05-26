@@ -129,7 +129,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
-    model = load_model("/home/mjy/ultralytics/runs/obb/3IR/weights/best.pt", device)
+    model = load_model("/home/mjy/ultralytics/runs/detect/3IR/weights/best.pt", device)
     process_images("./images/", model)
 
 if __name__ == "__main__":
