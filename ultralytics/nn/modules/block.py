@@ -53,7 +53,8 @@ __all__ = (
     "NAM",
     "GCBAM",
     "SACBAM",
-    "MdC2f"
+    "MdC2f",
+    "C2f_Invo"
 )
 import numpy as np
 import torch
@@ -1042,7 +1043,8 @@ class MdC2f(nn.Module):
         self.c = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, 2 * self.c, 1, 1)
         self.cv2 = Conv((2 + n) * self.c, c2, 1)  # optional act=FReLU(c2)
-        self.m = nn.ModuleList(Md(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0,deiltations=i) for i in range(n))
+
+        self.m = nn.ModuleList(Md(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0,deiltations=i+1) for i in range(n))
 
     def forward(self, x):
         """Forward pass through C2f layer."""
@@ -1056,6 +1058,46 @@ class MdC2f(nn.Module):
         y.extend(m(y[-1]) for m in self.m)
         return self.cv2(torch.cat(y, 1))
     
+class CDC2f(nn.Module):
+    """Faster Implementation of CSP Bottleneck with 2 convolutions."""
+
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
+        """Initialize CSP bottleneck layer with two convolutions with arguments ch_in, ch_out, number, shortcut, groups,
+        expansion.
+        """
+        super().__init__()
+        self.c = int(c2 * e)  # hidden channels
+        self.cv1 = Conv(c1, 2 * self.c, 1, 1)
+        self.cv2 = Conv((2 + n) * self.c, c2, 1)  # optional act=FReLU(c2)
+        # Bottleneck(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0) for _ in range(n)
+        # 3 1 3 8 5 2  5 2     k= 3, 3, 5, and 5 and d= 1, 8, 2, and 3
+        if n==1:
+           # high pass d
+           # 3 1 /3 8/5 3
+           self.m = nn.ModuleList(Md(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0,deiltations=8))
+
+
+        else :
+           # low pass c
+           # 3 1/3 8/ 5 2/ 5 3/ 3 3/ 5 5 
+           self.m = nn.ModuleList((Md(self.c, self.c, shortcut, g, k=((3, 3), (5, 5)), e=1.0,deiltations=2),
+                                  Md(self.c, self.c, shortcut, g, k=((3, 3), (5, 5)), e=1.0,deiltations=3)) )
+
+    def forward(self, x):
+        """Forward pass through C2f layer."""
+        y = list(self.cv1(x).chunk(2, 1))
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, 1))
+
+    def forward_split(self, x):
+        """Forward pass using split() instead of chunk()."""
+        y = list(self.cv1(x).split((self.c, self.c), 1))
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, 1))
+    
+
+
+
 
 class C2f(nn.Module):
     """Faster Implementation of CSP Bottleneck with 2 convolutions."""
@@ -1081,6 +1123,166 @@ class C2f(nn.Module):
         y = list(self.cv1(x).split((self.c, self.c), 1))
         y.extend(m(y[-1]) for m in self.m)
         return self.cv2(torch.cat(y, 1))
+
+
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
+ 
+ 
+
+ 
+class Involution(nn.Module):
+ 
+    def __init__(self, c1, c2, kernel_size, stride):
+        super(Involution, self).__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.c1 = c1
+        reduction_ratio = 4
+        self.group_channels = 16
+        self.groups = self.c1 // self.group_channels
+        self.conv1 = Conv(
+            c1, c1 // reduction_ratio, 1)
+        self.conv2 = Conv(
+            c1 // reduction_ratio,
+            kernel_size ** 2 * self.groups,
+            1, 1)
+ 
+        if stride > 1:
+            self.avgpool = nn.AvgPool2d(stride, stride)
+        self.unfold = nn.Unfold(kernel_size, 1, (kernel_size - 1) // 2, stride)
+ 
+    def forward(self, x):
+        weight = self.conv2(self.conv1(x if self.stride == 1 else self.avgpool(x)))
+        b, c, h, w = weight.shape
+        weight = weight.view(b, self.groups, self.kernel_size ** 2, h, w).unsqueeze(2)
+        out = self.unfold(x).view(b, self.groups, self.group_channels, self.kernel_size ** 2, h, w)
+        out = (weight * out).sum(dim=3).view(b, self.c1, h, w)
+ 
+        return out
+
+from ultralytics.utils.torch_utils import make_divisible
+
+
+class PKIModule_CAA(nn.Module):
+    def __init__(self, ch, h_kernel_size = 11, v_kernel_size = 11) -> None:
+        super().__init__()
+        
+        self.avg_pool = nn.AvgPool2d(7, 1, 3)
+        self.conv1 = Conv(ch, ch)
+        self.h_conv = nn.Conv2d(ch, ch, (1, h_kernel_size), 1, (0, h_kernel_size // 2), 1, ch)
+        self.v_conv = nn.Conv2d(ch, ch, (v_kernel_size, 1), 1, (v_kernel_size // 2, 0), 1, ch)
+        self.conv2 = Conv(ch, ch)
+        self.act = nn.Sigmoid()
+    
+    def forward(self, x):
+        attn_factor = self.act(self.conv2(self.v_conv(self.h_conv(self.conv1(self.avg_pool(x))))))
+        return attn_factor
+    
+
+class PKIModule(nn.Module):
+    def __init__(self, inc, ouc, kernel_sizes=(3, 5, 7, 9, 11), expansion=1.0, with_caa=True, caa_kernel_size=11, add_identity=True) -> None:
+        super().__init__()
+        hidc = make_divisible(int(ouc * expansion), 8)
+        
+        self.pre_conv = Conv(inc, hidc)
+        self.dw_conv = nn.ModuleList(nn.Conv2d(hidc, hidc, kernel_size=k, padding=autopad(k), groups=hidc) for k in kernel_sizes)
+        self.pw_conv = Conv(hidc, hidc)
+        self.post_conv = Conv(hidc, ouc)
+        
+        if with_caa:
+            self.caa_factor = PKIModule_CAA(hidc, caa_kernel_size, caa_kernel_size)
+        else:
+            self.caa_factor = None
+        
+        self.add_identity = add_identity and inc == ouc
+    
+    def forward(self, x):
+        x = self.pre_conv(x)
+        
+        y = x
+        x = self.dw_conv[0](x)
+        x = torch.sum(torch.stack([x] + [layer(x) for layer in self.dw_conv[1:]], dim=0), dim=0)
+        x = self.pw_conv(x)
+        
+        if self.caa_factor is not None:
+            y = self.caa_factor(y)
+        if self.add_identity:
+            y = x * y
+            x = x + y
+        else:
+            x = x * y
+
+        x = self.post_conv(x)
+        return x
+    
+
+
+class C2f_PKIModule(C2f):
+    def __init__(self, c1, c2, n=1, kernel_sizes=(3, 5, 7, 9, 11), expansion=1.0, with_caa=True, caa_kernel_size=11, add_identity=True, g=1, e=0.5):
+        super().__init__(c1, c2, n, True, g, e)
+        self.m = nn.ModuleList(PKIModule(self.c, self.c, kernel_sizes, expansion, with_caa, caa_kernel_size, add_identity) for _ in range(n))
+
+class ShuffleNetV2(nn.Module):
+    def __init__(self, inp, oup, stride):  # ch_in, ch_out, stride
+        super().__init__()
+
+        self.stride = stride
+
+        branch_features = oup // 2 # 输出的一半
+        assert (self.stride != 1) or (inp == branch_features << 1)
+
+        if self.stride == 2:
+            # copy input
+            self.branch1 = nn.Sequential(
+                nn.Conv2d(inp, inp, kernel_size=3, stride=self.stride, padding=1, groups=inp),
+                nn.BatchNorm2d(inp),
+                nn.Conv2d(inp, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.ReLU(inplace=True))
+        else:
+            self.branch1 = nn.Sequential()
+
+        self.branch2 = nn.Sequential(
+            nn.Conv2d(inp if (self.stride == 2) else branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(branch_features),
+            nn.ReLU(inplace=True),
+            #Dw卷积
+            nn.Conv2d(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1, groups=branch_features),
+            nn.BatchNorm2d(branch_features),
+            #Pw
+            nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(branch_features),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        if self.stride == 1:
+            x1, x2 = x.chunk(2, dim=1)
+            out = torch.cat((x1, self.branch2(x2)), dim=1)
+        else:
+            out = torch.cat((self.branch1(x), self.branch2(x)), dim=1)
+
+        out = self.channel_shuffle(out, 2)
+
+        return out
+
+    def channel_shuffle(self, x, groups):
+        N, C, H, W = x.size()
+        out = x.view(N, groups, C // groups, H, W).permute(0, 2, 1, 3, 4).contiguous().view(N, C, H, W)
+
+        return out
+    
+class C2f_Shufflenet(C2f):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
+        super().__init__(c1, c2, n, shortcut, g, e)
+        self.m = nn.ModuleList(ShuffleNetV2(self.c, self.c,1) for _ in range(n))
+
+class C2f_Invo(C2f):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
+        super().__init__(c1, c2, n, shortcut, g, e)
+        self.m = nn.ModuleList(InvoConv(self.c, self.c,1) for _ in range(n))
 
 
 class C3(nn.Module):
@@ -1179,6 +1381,24 @@ class Bottleneck(nn.Module):
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, k[0], 1)
         self.cv2 = Conv(c_, c2, k[1], 1, g=g)
+        self.add = shortcut and c1 == c2
+
+    def forward(self, x):
+        """'forward()' applies the YOLO FPN to input data."""
+        return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+
+
+class InvoConv(nn.Module):
+    """Standard bottleneck."""
+
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5):
+        """Initializes a bottleneck module with given input/output channels, shortcut option, group, kernels, and
+        expansion.
+        """
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = Conv(c1, c_, k[0], 1)
+        self.cv2 = Involution(c_, c2, k[1], 1)
         self.add = shortcut and c1 == c2
 
     def forward(self, x):

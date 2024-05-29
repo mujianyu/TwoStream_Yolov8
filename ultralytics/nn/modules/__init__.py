@@ -62,7 +62,11 @@ from .block import (
     GLCBAM,
     GCBAM,
     SACBAM,
-    MdC2f
+    MdC2f,
+    CDC2f,
+    C2f_Shufflenet,
+    C2f_Invo,
+    C2f_PKIModule
 )
 from .conv import (
     CBAM,
