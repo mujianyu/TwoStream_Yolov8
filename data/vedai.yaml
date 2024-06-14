@@ -19,13 +19,12 @@ test: # test images (optional)
 
 # Classes
 names:
-  1: 'car',  
-  2: 'truck',  
-  31: 'plane',  
-  4: 'tractor',  
-  5: 'camping_car',  
-  9: 'van',  
-  10: 'others',  
-  11: 'pick-up',  
-  23: 'boat'  
-
+  0: 'plane'
+  1: 'boat'
+  2: 'camping_car'
+  3: 'car'
+  4: 'pick-up'
+  5: 'tractor'
+  6: 'truck'
+  7: 'van'
+  8: 'others'

@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
-import torch
-
+d
 label_path = r'/home/mjy/ultralytics/datasets/rgbir/labels/train/00002.txt'
 image_path = r'/home/mjy/ultralytics/datasets/rgbir/image/train/00002.jpg'
 
