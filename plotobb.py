@@ -19,7 +19,10 @@ def draw_quadrilateral(image_path, box_file_path):
             coords = box.split()  # 使用空格作为分隔符  
             coords=coords[1:]
             for i in range(len(coords)):
-                coords[i]=float(coords[i])*1024
+                if i %2==0:
+                    coords[i]=float(coords[i])*640
+                else :
+                    coords[i]=float(coords[i])*512
             if len(coords) != 8:  
                 print(f"Warning: Invalid number of coordinates for a box in {box_file_path}")  
                 continue  
@@ -34,17 +37,17 @@ def draw_quadrilateral(image_path, box_file_path):
         # 显示或保存图像（这里选择保存）  
     base_name = os.path.splitext(os.path.basename(image_path))[0]  
 
-    output_path = os.path.join('/home/mjy/ultralytics/datasets/test', base_name + '_with_box.png') 
+    output_path = os.path.join('/home/mjy/ultralytics/datasets/test', base_name + '_with_box.jpg') 
     cv2.imwrite(output_path, image)  
     print(f"Saved image with boxes to {output_path}")  
     
 
   
 # 示例：遍历图像目录并处理每个图像和对应的txt文件  
-image_dir = '/home/mjy/ultralytics/datasets/vedai/images/train'  # 替换为你的图像目录  
-label_dir= '/home/mjy/ultralytics/datasets/vedai/labels/train' 
+image_dir = '/home/mjy/ultralytics/datasets/OBBCrop/images/val'  # 替换为你的图像目录  
+label_dir= '/home/mjy/ultralytics/datasets/OBBCrop/labels/val' 
 for filename in os.listdir(image_dir):  
-    if filename.endswith('.png') or filename.endswith('.png'):  # 假设你的图像是png或png格式  
+    if filename.endswith('.jpg') or filename.endswith('.jpg'):  # 假设你的图像是jpg或jpg格式  
         image_path = os.path.join(image_dir, filename)  
         box_file_path = os.path.join(label_dir, os.path.splitext(filename)[0] + '.txt')  # 假设txt文件和图像文件同名，只是扩展名不同  
         

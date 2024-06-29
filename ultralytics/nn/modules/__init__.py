@@ -66,7 +66,11 @@ from .block import (
     CDC2f,
     C2f_Shufflenet,
     C2f_Invo,
-    C2f_PKIModule
+    C2f_PKIModule,
+    CSFM,
+    FEM,
+    C2f_FEM,
+    C2f_PPA
 )
 from .conv import (
     CBAM,

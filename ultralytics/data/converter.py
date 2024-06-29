@@ -373,8 +373,7 @@ def convert_dota_to_yolo_obb(dota_root_path: str):
     dota_root_path = Path(dota_root_path)
 
     # Class names to indices mapping
-    class_mapping = {'plane': 0, 'boat': 1, 'camping_car': 2, 'car': 3, 'pick-up': 4, 'tractor': 5, 'truck': 6, 'van': 7,
-              'others':8}
+    class_mapping = {  'car':0,'truck':1,'bus':2,'van':3,'feright_car':4}
 
     def convert_label(image_name, image_width, image_height, orig_label_dir, save_dir):
         """Converts a single image's DOTA annotation to YOLO OBB format and saves it to a specified directory."""

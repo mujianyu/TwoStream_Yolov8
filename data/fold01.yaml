@@ -9,11 +9,11 @@
 
 # Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
 # path: /home/mjy/ultralytics/datasets/coco8 # dataset root dir
-train: /home/mjy/ultralytics/datasets/vedai/images/train # train images (relative to 'path') 4 images
-val: /home/mjy/ultralytics/datasets/vedai/images/val # val images (relative to 'path') 4 images
+train: /home/mjy/ultralytics/datasets/fold01/images/train # train images (relative to 'path') 4 images
+val: /home/mjy/ultralytics/datasets/fold01/images/val # val images (relative to 'path') 4 images
 # val: /home/mjy/ultralytics/datasets/OBB/images/test
-train_ir: /home/mjy/ultralytics/datasets/vedai/image/train # train images (relative to 'path') 4 images
-val_ir: /home/mjy/ultralytics/datasets/vedai/image/val # val images (relative to 'path') 4 images
+train_ir: /home/mjy/ultralytics/datasets/fold01/image/train # train images (relative to 'path') 4 images
+val_ir: /home/mjy/ultralytics/datasets/fold01/image/val # val images (relative to 'path') 4 images
 # val_ir: /home/mjy/ultralytics/datasets/OBB/image/test
 test: # test images (optional)
 
@@ -25,5 +25,6 @@ names:
   3: 'tractor'
   4: 'camping_car'
   5: 'pick-up'
-  6: 'plane'
-  7: 'van'
+  6: 'van'
+  7: 'plane'
+  8: 'other'

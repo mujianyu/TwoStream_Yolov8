@@ -69,7 +69,11 @@ from ultralytics.nn.modules import (
     CDC2f,
     C2f_Shufflenet,
     C2f_Invo,
-    C2f_PKIModule
+    C2f_PKIModule,
+    CSFM,
+    FEM,
+    C2f_FEM,
+    C2f_PPA
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -956,7 +960,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             CDC2f,
             C2f_Shufflenet,
             C2f_Invo,
-            C2f_PKIModule
+            C2f_PKIModule,
+            C2f_FEM,
+            C2f_PPA
         }:
             c1, c2 = ch[f], args[0]
             if f==-4:
@@ -971,9 +977,17 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 )  # num heads
 
             args = [c1, c2, *args[1:]]
-            if m in {BottleneckCSP, C1, C2, C2f, C2fAttn, C3, C3TR, C3Ghost, C3x, RepC3,C2f_PKIModule}:
+            if m in {BottleneckCSP, C1, C2, C2f, C2fAttn, C3, C3TR, C3Ghost, C3x, RepC3,C2f_PKIModule,C2f_FEM,C2f_PPA}:
                 args.insert(2, n)  # number of repeats
                 n = 1
+
+        elif m is FEM:
+            c1, c2 = ch[f], args[0]
+            if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+            tn=args[1]
+          
+            args=[c1,c2,tn] 
         elif m is ADD:
 #            print("ch[f]", f, ch[f[0]])
             c2 = ch[f[0]]
@@ -982,7 +996,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
             args = [c1,c2] 
-        elif m in {SKAttention,GLF,NAM,GLCBAM,GCBAM,SACBAM}:
+        elif m in {SKAttention,GLF,NAM,GLCBAM,GCBAM,SACBAM,CSFM}:
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
             args = [c1,c2] 
