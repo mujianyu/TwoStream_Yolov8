@@ -1,7 +1,7 @@
 from ultralytics import YOLO
  
  
-model = YOLO('/home/mjy/ultralytics/runs/obb/train17/weights/best.pt')  # build from YAML and transfer weights
+model = YOLO('/home/mjy/ultralytics/runs/detect/train43/weights/best.pt')  # build from YAML and transfer weights
 
 
-metrics = model.val(data='/home/mjy/ultralytics/data/coco81.yaml',imgsz=864)
+metrics = model.val(data='/home/mjy/ultralytics/data/drone2.yaml',imgsz=640)
