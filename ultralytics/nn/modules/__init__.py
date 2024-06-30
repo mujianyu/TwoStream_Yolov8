@@ -70,7 +70,8 @@ from .block import (
     CSFM,
     FEM,
     C2f_FEM,
-    C2f_PPA
+    C2f_PPA,
+    C2f_ScConv
 )
 from .conv import (
     CBAM,

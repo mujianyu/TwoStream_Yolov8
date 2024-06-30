@@ -1,7 +1,7 @@
 from ultralytics import YOLO
  
  
-model = YOLO('/home/mjy/ultralytics/yaml/yolov8n.yaml')
+model = YOLO('/home/mjy/ultralytics/yaml/CBAMyolov8n.yaml')
 # .load('/home/mjy/ultralytics/yolov8n-obb.pt ') # build from YAML and transfer weights
 
 # Train the model
