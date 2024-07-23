@@ -230,10 +230,10 @@ class yolov8_heatmap:
         
 def get_params():
     params = {
-        'weight': '/home/mjy/ultralytics/runs/detect/CBAM/weights/best.pt', # 现在只需要指定权重即可,不需要指定cfg
+        'weight': '/home/mjy/ultralytics/runs/detect/train19/weights/best.pt', # 现在只需要指定权重即可,不需要指定cfg
         'device': 'cuda:0',
-        'method': 'GradCAM', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
-        'layer': [20],
+        'method': 'GradCAMPlusPlus', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
+        'layer': [7],
         'backward_type': 'all', # class, box, all
         'conf_threshold': 0.2, # 0.2
         'ratio': 0.02, # 0.02-0.1
@@ -245,4 +245,4 @@ def get_params():
 if __name__ == '__main__':
     model = yolov8_heatmap(**get_params())
     # model(r'/home/hjj/Desktop/dataset/dataset_visdrone/VisDrone2019-DET-test-dev/images/9999947_00000_d_0000026.jpg', 'result')
-    model(r'/home/mjy/ultralytics/datasets/OBB/images/train/00011.jpg',r'/home/mjy/ultralytics/datasets/OBB/image/train/00011.jpg', 'result')
+    model(r'/home/mjy/ultralytics/datasets/OBBCrop/images/train/00004.jpg',r'/home/mjy/ultralytics/datasets/OBBCrop/image/train/00004.jpg', 'result')

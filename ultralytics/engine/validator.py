@@ -138,7 +138,7 @@ class BaseValidator:
                 self.args.batch = model.batch_size
             elif not pt and not jit:
                 self.args.batch = 1  # export.py models default to batch-size 1
-                LOGGER.info(f"Forcing batch=1 square inference (1,3,{imgsz},{imgsz}) for non-PyTorch models")
+                LOGGER.info(f"Forcing batch=1 square inference (1,6,{imgsz},{imgsz}) for non-PyTorch models")
 
             if str(self.args.data).split(".")[-1] in {"yaml", "yml"}:
                 self.data = check_det_dataset(self.args.data)
@@ -155,10 +155,11 @@ class BaseValidator:
             
             #ir图像位置
             # irpath='/home/mjy/ultralytics/datasets/OBB/image/val'
-
-            self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split),self.data.get("val_ir"), self.args.batch)
+            strir=Path(self.data.get(self.args.split)).name+'_ir'
+            self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split),self.data.get(strir), self.args.batch)
 
             model.eval()
+    
             model.warmup(imgsz=(1 if pt else self.args.batch, 6, imgsz, imgsz))  # warmup
 
         self.run_callbacks("on_val_start")
@@ -175,13 +176,27 @@ class BaseValidator:
             self.run_callbacks("on_val_batch_start")
             self.batch_i = batch_i
             # import matplotlib.pyplot as plt  
+            # import cv2
+            # import numpy as np
+            
+            # img1= batch['img'][0][:3,...] #rgb
+            # img2= batch['img'][0][3:,...] #ir
+            # img1=img1.permute(1, 2, 0) 
+            # img2=img2.permute(1,2,0)
+            # if type(img2==torch.Tensor):
+            #     img2=img2.cpu()
+            #     img2=np.array(img2)
+            # else :    
+            #     img2=np.array(img2)
+            # if type(img1==torch.Tensor):
+            #     img1=img1.cpu()
+
             # plt.imshow(img1)
-            # plt.show()
-            # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'rgb.jpg')
-            # # 创建一个新的图形  
-            # plt.imshow(img)
-            # plt.show()
-            # plt.savefig('/home/mjy/ultralytics/images/'+str(i)+'ir.jpg')
+            # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'rgb.jpg')
+            # plt.close()
+            # plt.imshow(img2)
+            # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'ir.jpg')
+            # plt.close()
             # Preprocess
             with dt[0]:
                 batch = self.preprocess(batch)
@@ -221,6 +236,8 @@ class BaseValidator:
                 "Speed: %.1fms preprocess, %.1fms inference, %.1fms loss, %.1fms postprocess per image"
                 % tuple(self.speed.values())
             )
+            LOGGER.info(f'前向传播 FPS:{(1000 / tuple(self.speed.values())[1]):.2f}')
+
             if self.args.save_json and self.jdict:
                 with open(str(self.save_dir / "predictions.json"), "w") as f:
                     LOGGER.info(f"Saving {f.name}...")

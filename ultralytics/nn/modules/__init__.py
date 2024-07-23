@@ -71,7 +71,11 @@ from .block import (
     FEM,
     C2f_FEM,
     C2f_PPA,
-    C2f_ScConv
+    C2f_Faster,
+    C2f_RG,
+    Fusion,
+    Concat3,
+    RIFusion
 )
 from .conv import (
     CBAM,

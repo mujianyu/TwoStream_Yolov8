@@ -1,8 +1,7 @@
 from ultralytics import YOLO
+import ultralytics.nn.tasks
  
- 
-model = YOLO('/home/mjy/ultralytics/yaml/CBAMyolov8n.yaml')
-# .load('/home/mjy/ultralytics/yolov8n-obb.pt ') # build from YAML and transfer weights
+model = YOLO('./yaml/Fasteryolov8n.yaml')
 
 # Train the model
-results = model.train(data='/home/mjy/ultralytics/data/drone.yaml',batch=16,epochs=200)
+results = model.train(data='/home/mjy/ultralytics/data/drone.yaml',batch=16,epochs=1,amp=False,half=False)

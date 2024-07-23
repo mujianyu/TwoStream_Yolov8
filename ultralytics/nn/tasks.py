@@ -74,7 +74,11 @@ from ultralytics.nn.modules import (
     FEM,
     C2f_FEM,
     C2f_PPA,
-    C2f_ScConv
+    C2f_RG,
+    C2f_Faster,
+    Fusion,
+    Concat3,
+    RIFusion
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -146,49 +150,83 @@ class BaseModel(nn.Module):
             (torch.Tensor): The last output of the model.
         """
         y, dt, embeddings = [], [], []  # outputs
-       
-        if(x.shape[1]==6) :
+        rgb,ir=torch.chunk(x,chunks=2,dim=1) # 红外
+        # rgb=x[:, :3, :, :] # 可见光
+        x=rgb
+        # if(x.shape[1]==6) :
 
-            import matplotlib.pyplot as plt  
-            import cv2
-            import numpy as np
+        #     # import matplotlib.pyplot as plt  
+        #     # import cv2
+        #     # import numpy as np
             
-            # img1= x[0][:3,...] #rgb
-            # img2= x[0][3:,...] #ir
-            # img1=img1.permute(1, 2, 0) 
-            # img2=img2.permute(1,2,0)
-            # if type(img2==torch.Tensor):
-            #     img2=img2.cpu()
-            #     img2=np.array(img2)
-            # else :    
-            #     img2=np.array(img2)
-            # if type(img1==torch.Tensor):
-            #     img1=img1.cpu()
+        #     # img1= x[0][:3,...] #rgb
+        #     # img2= x[0][3:,...] #ir
+        #     # img1=img1.permute(1, 2, 0) 
+        #     # img2=img2.permute(1,2,0)
+        #     # if type(img2==torch.Tensor):
+        #     #     img2=img2.cpu()
+        #     #     img2=np.array(img2)
+        #     # else :    
+        #     #     img2=np.array(img2)
+        #     # if type(img1==torch.Tensor):
+        #     #     img1=img1.cpu()
 
-            # plt.imshow(img1)
-            # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'rgb.jpg')
-            # plt.close()
-            # plt.imshow(img2)
-            # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'ir.jpg')
-            # plt.close()
-            x2=x[:, 3:, :, :]
-            x=x[:, :3, :, :]
-        else :
-            x2=x
+        #     # plt.imshow(img1)
+        #     # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'rgb.jpg')
+        #     # plt.close()
+        #     # plt.imshow(img2)
+        #     # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'ir.jpg')
+        #     # plt.close()
+        #     rgb,ir=torch.chunk(x,chunks=2,dim=1) # 红外
+        #     # rgb=x[:, :3, :, :] # 可见光
+        #     x=rgb
+        # else :
+        #     rgb=x
+        #     ir=x
         
 
-        for m in self.model:
+        isR=True # 当前是否为RGB
 
+        for m in self.model:
+            
+            # 既不是ADD 也不是 Fusion 也不为-1 
             if m.f != -4:
-                if m.f != -1:  # if not from previous layer
-                    x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+                if m.f != -3:
+                    if m.f != -1:  # if not from previous layer
+                        x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
        
             if profile:
                 self._profile_one_layer(m, x, dt)
-            if m.f == -4:
-                x= m(x2)
+
+
+            
+            if m.f==-4:
+                # 跳转另外一个分支
+                if isR:
+                    x= m(ir)
+                    ir=x
+                    isR=False
+                else :
+                    x = m(rgb)  # run
+                    rgb=x
+                    isR=True
+            elif m.f==-3:
+                    x3=torch.cat([rgb,ir],dim=1)
+                    x3=m(x3)
+                    rgb,ir = torch.chunk(x3, 2, dim=1)
+                    x=[]#中间层
+            elif m.i<23:
+                if isR:
+                    x= m(rgb)
+                    rgb=x
+                else :
+                    x = m(ir)  # run
+                    ir=x
             else :
-                x = m(x)  # run
+                x=m(x)
+
+
+
             y.append(x if m.i in self.save else None)  # save output
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
@@ -196,6 +234,7 @@ class BaseModel(nn.Module):
                 embeddings.append(nn.functional.adaptive_avg_pool2d(x, (1, 1)).squeeze(-1).squeeze(-1))  # flatten
                 if m.i == max(embed):
                     return torch.unbind(torch.cat(embeddings, 1), dim=0)
+        
         return x
 
     def _predict_augment(self, x):
@@ -921,16 +960,32 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         LOGGER.info(f"\n{'':>3}{'from':>20}{'n':>3}{'params':>10}  {'module':<45}{'arguments':<30}")
     
     ch = [ch]
+    
+    tx=[3,256,256,512,512,1024,1024]
+        
+    ty=0
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
-        m = getattr(torch.nn, m[3:]) if "nn." in m else globals()[m]  # get module
+        # m = getattr(torch.nn, m[3:]) if "nn." in m else globals()[m]  # get module
+        try:
+            if m == 'node_mode':
+                m = d[m]
+                if len(args) > 0:
+                    if args[0] == 'head_channel':
+                        args[0] = int(d[args[0]])
+            t = m
+            m = getattr(torch.nn, m[3:]) if 'nn.' in m else globals()[m]  # get module
+        except:
+            pass
         for j, a in enumerate(args):
             if isinstance(a, str):
                 with contextlib.suppress(ValueError):
                     args[j] = locals()[a] if a in locals() else ast.literal_eval(a)
 
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
-  
+        # 上次相同图像的通道数
+        
+
         if m in {
             Classify,
             Conv,
@@ -963,13 +1018,24 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2f_Invo,
             C2f_PKIModule,
             C2f_FEM,
-            C2f_PPA,
-            C2f_ScConv
-        }:
+            C2f_Faster,
+            C2f_RG,
+            
+        }:  
+            
+
             c1, c2 = ch[f], args[0]
             if f==-4:
-            #此时为下个backbonce,红外光
-                c1=3
+                c1=tx[ty]
+                if ty!=0:
+                    c1=c1*width
+            
+                c1=int(c1)
+                ty+=1
+                
+            # if f==-4:
+            # #此时为下个backbonce,红外光
+            #     c1=3
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             if m is C2fAttn:
@@ -979,10 +1045,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 )  # num heads
 
             args = [c1, c2, *args[1:]]
-            if m in {BottleneckCSP, C1, C2, C2f, C2fAttn, C3, C3TR, C3Ghost, C3x, RepC3,C2f_PKIModule,C2f_FEM,C2f_PPA,C2f_ScConv}:
+            if m in {BottleneckCSP, C1, C2, C2f, C2fAttn, C3, C3TR, C3Ghost, C3x, RepC3,C2f_PKIModule,C2f_FEM,C2f_PPA,C2f_RG,C2f_Faster}:
                 args.insert(2, n)  # number of repeats
                 n = 1
-
         elif m is FEM:
             c1, c2 = ch[f], args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
@@ -990,6 +1055,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             tn=args[1]
           
             args=[c1,c2,tn] 
+        elif m is Fusion:
+            args[0] = d[args[0]]
+            c1, c2 = [ch[x] for x in f], (sum([ch[x] for x in f]) if args[0] == 'concat' else ch[f[0]])
+            args = [c1, args[0]]
         elif m is ADD:
 #            print("ch[f]", f, ch[f[0]])
             c2 = ch[f[0]]
@@ -998,6 +1067,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
             args = [c1,c2] 
+        elif m is RIFusion:
+            args = [args[0]] 
         elif m in {SKAttention,GLF,NAM,GLCBAM,GCBAM,SACBAM,CSFM}:
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
@@ -1016,6 +1087,11 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = ch[f[0]]
             args = [c1,c2] 
         elif m is Concat2:
+            
+            c1 = ch[f[0]]+ch[f[1]]
+            c2 = ch[f[0]]
+            args = [c1,c2]
+        elif m is Concat3:
             
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
@@ -1068,17 +1144,25 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         else:
             c2 = ch[f]
 
+
         m_ = nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
+        
+        
+
         t = str(m)[8:-2].replace("__main__.", "")  # module type
         m.np = sum(x.numel() for x in m_.parameters())  # number params
         m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
         if verbose:
             LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m.np:10.0f}  {t:<45}{str(args):<30}")  # print
-        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
+
+        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x not in [-1,-3,-4])  # append to savelist
+        
+        
         layers.append(m_)
         if i == 0:
             ch = []
         ch.append(c2)
+        
     return nn.Sequential(*layers), sorted(save)
 
 

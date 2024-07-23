@@ -10,12 +10,13 @@
 # Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
 # path: /home/mjy/ultralytics/datasets/coco8 # dataset root dir
 train: /home/mjy/ultralytics/datasets/OBBCrop/images/train # train images (relative to 'path') 4 images
-val: /home/mjy/ultralytics/datasets/OBBCrop/images/test # val images (relative to 'path') 4 images
+val: /home/mjy/ultralytics/datasets/OBBCrop/images/val # val images (relative to 'path') 4 images
+test : /home/mjy/ultralytics/datasets/OBBCrop/images/test
 # val: /home/mjy/ultralytics/datasets/OBB_Crop/images/test
 train_ir: /home/mjy/ultralytics/datasets/OBBCrop/image/train # train images (relative to 'path') 4 images
-val_ir: /home/mjy/ultralytics/datasets/OBBCrop/image/test # val images (relative to 'path') 4 images
+val_ir: /home/mjy/ultralytics/datasets/OBBCrop/image/val # val images (relative to 'path') 4 images
 # val_ir: /home/mjy/ultralytics/datasets/OBB_Crop/image/test
-test: # test images (optional)
+test_ir: /home/mjy/ultralytics/datasets/OBBCrop/image/test # test images (optional)
 
 # Classes
 names:

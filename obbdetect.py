@@ -183,9 +183,9 @@ def load_model(weights_path, device):
     return model
 
 def detecttwoStream():
-    img = cv2.imread("/home/mjy/ultralytics/datasets/OBB/images/train/00011.jpg")
+    img = cv2.imread("/home/mjy/ultralytics/datasets/OBBCrop/images/train/00011.jpg")
     imgr=img
-    irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBB/image/train/00011.jpg")
+    irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBBCrop/image/train/00011.jpg")
     # img_pre = preprocess_letterbox(img)
     img=np.concatenate((img,irimg),axis=2)
 

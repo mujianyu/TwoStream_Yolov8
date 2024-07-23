@@ -10,32 +10,32 @@ from ultralytics.nn.autobackend import AutoBackend
 
 from ultralytics import YOLO
 import os 
-def preprocess_warpAffine(image, dst_width=640, dst_height=640):
-    scale = min((dst_width / image.shape[1], dst_height / image.shape[0]))
-    ox = (dst_width  - scale * image.shape[1]) / 2
-    oy = (dst_height - scale * image.shape[0]) / 2
-    M = np.array([
-        [scale, 0, ox],
-        [0, scale, oy]
-    ], dtype=np.float32)
-    img_pre = cv2.warpAffine(image, M, (dst_width, dst_height), flags=cv2.INTER_LINEAR,
-                             borderMode=cv2.BORDER_CONSTANT, borderValue=(114, 114, 114))
+# def preprocess_warpAffine(image, dst_width=640, dst_height=640):
+#     scale = min((dst_width / image.shape[1], dst_height / image.shape[0]))
+#     ox = (dst_width  - scale * image.shape[1]) / 2
+#     oy = (dst_height - scale * image.shape[0]) / 2
+#     M = np.array([
+#         [scale, 0, ox],
+#         [0, scale, oy]
+#     ], dtype=np.float32)
+#     img_pre = cv2.warpAffine(image, M, (dst_width, dst_height), flags=cv2.INTER_LINEAR,
+#                              borderMode=cv2.BORDER_CONSTANT, borderValue=(114, 114, 114))
     
-    IM = cv2.invertAffineTransform(M)
+#     IM = cv2.invertAffineTransform(M)
 
-    img_pre = (img_pre[...,::-1] / 255.0).astype(np.float32)
-    img_pre = img_pre.transpose(2, 0, 1)[None]
-    img_pre = torch.from_numpy(img_pre)
-    return img_pre, IM
+#     img_pre = (img_pre[...,::-1] / 255.0).astype(np.float32)
+#     img_pre = img_pre.transpose(2, 0, 1)[None]
+#     img_pre = torch.from_numpy(img_pre)
+#     return img_pre, IM
 
-def load_model(weights_path, device):
-    if not os.path.exists(weights_path):
-        print("Model weights not found!")
-        exit()
-    model = YOLO(weights_path).to(device)
-    model.fuse()
-    model.info(verbose=False)
-    return model
+# def load_model(weights_path, device):
+#     if not os.path.exists(weights_path):
+#         print("Model weights not found!")
+#         exit()
+#     model = YOLO(weights_path).to(device)
+#     model.fuse()
+#     model.info(verbose=False)
+#     return model
 
 
 import numpy as np
@@ -45,26 +45,26 @@ def to_numpy(tensor):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
-onnx_weights = '/home/mjy/ultralytics/runs/obb/3IR/weights/best.onnx'  # onnx权重路径
-torch_weights = '/home/mjy/ultralytics/runs/obb/3IR/weights/best.pt'  # torch权重路径
+onnx_weights = '/home/mjy/ultralytics/runs/detect/train26/weights/best.onnx'  # onnx权重路径
+torch_weights = '/home/mjy/ultralytics/runs/detect/train26/weights/best.pt'  # torch权重路径
  
-# input1 = torch.randn(1, 6, 640, 640, dtype=torch.float32) 
+input1 = torch.randn(1, 6, 640, 640, dtype=torch.float32) 
 
-img = cv2.imread("/home/mjy/ultralytics/datasets/OBB/images/train/00011.jpg")
-imgr=img
-irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBB/image/train/00011.jpg")
+# img = cv2.imread("/home/mjy/ultralytics/datasets/OBBCrop/images/train/00011.jpg")
+# imgr=img
+# irimg = cv2.imread("/home/mjy/ultralytics/datasets/OBBCrop/image/train/00011.jpg")
 # img_pre = preprocess_letterbox(img)
-input1=np.concatenate((img,irimg),axis=2)
-input1, IM = preprocess_warpAffine(input1)
+# input1=np.concatenate((img,irimg),axis=2)
+# input1, IM = preprocess_warpAffine(input1)
 
 
-model  = AutoBackend(weights=torch_weights)
+model  = AutoBackend(weights=torch_weights,fp16=False)
 names  = model.names
 result = model(input1)[0].transpose(-1, -2) 
 
 
 
-session = onnxruntime.InferenceSession(onnx_weights)
+
 # model = YOLO(model=torch_weights).to(device)
 
 with torch.no_grad():
@@ -74,15 +74,15 @@ img = input1.to('cpu').numpy().astype(np.float32) # array
 
 model.eval()
 
-
-input_name = session.get_inputs()[0].name  
-output_name = session.get_outputs()[0].name  
-  
 # 运行模型  
 #output = session.run([output_name], {input_name: img})
 #print(input_name)
 #print(output_name)
 
+session = onnxruntime.InferenceSession(onnx_weights)
+input_name = session.get_inputs()[0].name  
+output_name = session.get_outputs()[0].name  
+  
 onnx_output = torch.tensor(session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: img}))
 
 
@@ -90,7 +90,7 @@ onnx_output = torch.tensor(session.run([session.get_outputs()[0].name], {session
 print("onnx的输出")
 print(onnx_output[0])
 print("torch的输出")
-print(to_numpy(torch_output))
+print(torch_output)
 #测试输出不同
 
 
