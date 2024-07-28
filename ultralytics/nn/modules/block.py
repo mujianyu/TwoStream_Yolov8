@@ -2110,7 +2110,7 @@ class Faster_Block(nn.Module):
                  pconv_fw_type='split_cat'
                  ):
         super().__init__()
-        pconv_fw_type='slicing'
+
         self.dim = dim
         self.mlp_ratio = mlp_ratio
         # self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
@@ -2917,7 +2917,7 @@ class Concat3(nn.Module):
         # x=torch.cat([x1,x2], self.d)
 
         return x
-
+################空###################
 # class RIFusion(nn.Module):
 #     # Concatenate a list of tensors along dimension
 #     def __init__(self, c1,dimension=1):
@@ -2927,16 +2927,57 @@ class Concat3(nn.Module):
 #     def forward(self, x):
 
 #         return x
+#####################################
+
+#########
 
 class RIFusion(nn.Module):
     # Concatenate a list of tensors along dimension
-    def __init__(self, c1,dimension=1):
+    def __init__(self, c1,r=16,dimension=1):
         super().__init__()
-        self.fc=Conv(c1*2,c1*2)
-
+        self.c1=c1*2
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(self.c1, self.c1 // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.c1 // r, self.c1, bias=False),
+            nn.Sigmoid()
+        )
     def forward(self, x):
-        x1=self.fc(x)
-        return x+x1
+        # return x
+        b, _, _, _ = x.size()
+        
+        y = self.avg_pool(x).view(b, self.c1)
+        y = self.fc(y).view(b, self.c1, 1, 1)
+        x1=x * y
+
+        # x[:,:self.c1//2,...]+=x1[:,self.c1//2:,...]
+        # x[:,self.c1//2:,...]+=x1[:,:self.c1//2,...]
+        # return x
+        return x+torch.cat((x1[:,self.c1//2:,...],x1[:,:self.c1//2,...]),dim=1)
+
+########
+# class RIFusion(nn.Module):
+#     # Concatenate a list of tensors along dimension
+#     def __init__(self, c1,dimension=1):
+#         super().__init__()
+#         # self.fc=Conv(c1*2,c1*2)
+
+#     def forward(self, x):
+#         # x1=self.fc(x)
+#         return x
+      
+############卷积##############
+# class RIFusion(nn.Module):
+#     # Concatenate a list of tensors along dimension
+#     def __init__(self, c1,dimension=1):
+#         super().__init__()
+#         self.fc=Conv(c1*2,c1*2)
+
+#     def forward(self, x):
+#         x1=self.fc(x)
+#         return x+x1
+###########################
       
 # class RIFusion(nn.Module):
 #     # Concatenate a list of tensors along dimension
@@ -2950,13 +2991,14 @@ class RIFusion(nn.Module):
 #         # x1=torch.cat([x_2,x_1],dim=1)
 #         # x=torch.add(x,x1)
 #         return x
+
+
+##############注意力################
 # class RIFusion(nn.Module):
 #     # Concatenate a list of tensors along dimension
 #     def __init__(self, c1,r=16,dimension=1):
 #         super().__init__()
 #         self.c1=c1*2
-
-    
 #         self.avg_pool = nn.AdaptiveAvgPool2d(1)
 #         self.fc = nn.Sequential(
 #             nn.Linear(self.c1, self.c1 // r, bias=False),
@@ -2971,10 +3013,12 @@ class RIFusion(nn.Module):
 #         y = self.avg_pool(x).view(b, self.c1)
 #         y = self.fc(y).view(b, self.c1, 1, 1)
 #         x1=x * y
-#         x[:,:c,...]+=x1[:,c:,...]
-#         x[:,c:,...]+=x1[:,:c,...]
-#         return x
-#         # return x+torch.cat((x1[:,c:,...],x1[:,:c,...]),dim=1)
+#         # x[:,:c,...]+=x1[:,c:,...]
+#         # x[:,c:,...]+=x1[:,:c,...]
+#         # return x
+#         return x+torch.cat((x1[:,c:,...],x1[:,:c,...]),dim=1)
+ ###########################   
+ #       return x+torch.cat((x1[:,c:,...],x1[:,:c,...]),dim=1)
         
 #         # y = list(x.split((c, c), 1))
 #         # y1 = list(x1.split((c, c), 1))

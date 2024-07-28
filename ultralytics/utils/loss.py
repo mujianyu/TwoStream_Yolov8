@@ -61,6 +61,9 @@ class FocalLoss(nn.Module):
         return loss.mean(1).sum()
 
 
+
+from .metrics import piou
+
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses during training."""
 
@@ -74,16 +77,17 @@ class BboxLoss(nn.Module):
         """IoU loss."""
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
         # iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
-        # loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+        iou = 1-piou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, PIoU2=True)
+        loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
         
-        iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, WIoU=True, scale=True)
-        if type(iou) is tuple:
-            if len(iou) == 2:
-                loss_iou = ((1.0 - iou[0]) * iou[1].detach() * weight).sum() / target_scores_sum
-            else:
-                loss_iou = (iou[0] * iou[1] * weight).sum() / target_scores_sum
-        else:
-            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+        # iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, WIoU=True, scale=True)
+        # if type(iou) is tuple:
+        #     if len(iou) == 2:
+        #         loss_iou = ((1.0 - iou[0]) * iou[1].detach() * weight).sum() / target_scores_sum
+        #     else:
+        #         loss_iou = (iou[0] * iou[1] * weight).sum() / target_scores_sum
+        # else:
+        #     loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
 
 
         # DFL loss
