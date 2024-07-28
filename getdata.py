@@ -53,6 +53,27 @@ dest_images = os.path.join(dest_base, 'images/train')
 dest_labels = os.path.join(dest_base, 'labels/train')  
 dest_image = os.path.join(dest_base, 'image/train')  
 
-num_files_to_copy=1024
+num_files_to_copy=1792
 # 复制匹配的文件  
 copy_matching_files(src_images, src_labels, src_image,dest_images, dest_labels,dest_image, num_files_to_copy) 
+
+# 生成cache
+from ultralytics import YOLO
+import ultralytics.nn.tasks
+ 
+model = YOLO('./yaml/Fasteryolov8n.yaml')
+
+# Train the mod
+results = model.train(data='/home/mjy/ultralytics/data/drone3.yaml',batch=16,epochs=1)
+
+
+# 生成engine
+model = YOLO("/home/mjy/ultralytics/pp/best.pt")
+model.export(format='engine',int8=True,dynamic=True,batch=16,data='/home/mjy/ultralytics/data/drone3.yaml')
+
+
+
+
+# 测试
+model = YOLO('/home/mjy/ultralytics/pp/best.engine') 
+metrics = model.val(data='/home/mjy/ultralytics/data/drone2.yaml',split='test',imgsz=640,batch=16)
