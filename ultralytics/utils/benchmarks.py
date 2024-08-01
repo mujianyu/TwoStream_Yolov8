@@ -34,7 +34,7 @@ import torch.cuda
 
 from ultralytics import YOLO, YOLOWorld
 from ultralytics.cfg import TASK2DATA, TASK2METRIC
-from ultralytics.engine.exporter1 import export_formats
+from ultralytics.engine1.exporter1 import export_formats
 from ultralytics.utils import ASSETS, LINUX, LOGGER, MACOS, TQDM, WEIGHTS_DIR
 from ultralytics.utils.checks import IS_PYTHON_3_12, check_requirements, check_yolo
 from ultralytics.utils.files import file_size

@@ -304,7 +304,7 @@ class AutoBackend(nn.Module):
             LOGGER.info(f"Loading {w} for TensorFlow GraphDef inference...")
             import tensorflow as tf
 
-            from ultralytics.engine.exporter import gd_outputs
+            from ultralytics.engine1.exporter import gd_outputs
 
             def wrap_frozen_graph(gd, inputs, outputs):
                 """Wrap frozen graphs for deployment."""
@@ -388,7 +388,7 @@ class AutoBackend(nn.Module):
 
         # Any other format (unsupported)
         else:
-            from ultralytics.engine.exporter import export_formats
+            from ultralytics.engine1.exporter import export_formats
 
             raise TypeError(
                 f"model='{w}' is not a supported model format. "

@@ -4,7 +4,8 @@ from ultralytics import YOLO
 
 # model = YOLO('/home/mjy/ultralytics/pth/PCONV.engine') 
 
-model = YOLO('/home/mjy/ultralytics/pp/best.engine') 
+model = YOLO(' runs/detect/train3/weights/best.pt') 
+# model = YOLO('/home/mjy/ultralytics/engine/b32.engine') 
 metrics = model.val(data='/home/mjy/ultralytics/data/drone2.yaml',split='test',imgsz=640,batch=16)
 # import torch
 # model=torch.load("./baseline.pt")
@@ -13,4 +14,4 @@ metrics = model.val(data='/home/mjy/ultralytics/data/drone2.yaml',split='test',i
 # for  para in model['model'].named_parameters():
 #     if(para[1].dtype==torch.float16):
 #         print(para[0])
-#         print(para[1
+#         print(para[1 runs/detect/train3/weights/last.pt
