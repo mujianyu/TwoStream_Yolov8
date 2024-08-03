@@ -141,7 +141,8 @@ class yolov8_heatmap:
         method = eval(method)(model, target_layers, use_cuda=device.type == 'cuda')
         method.activations_and_grads = ActivationsAndGradients(model, target_layers, None)
         
-        colors = np.random.uniform(0, 255, size=(len(model_names), 3)).astype(np.int64)
+        # colors = np.random.uniform(0, 255, size=(len(model_names), 3)).astype(np.int64)
+        colors=[(0,0,255)for i in range(len(model_names))]
         self.__dict__.update(locals())
     
     def post_process(self, result):
@@ -149,9 +150,10 @@ class yolov8_heatmap:
         return result
 
     def draw_detections(self, box, color, name, img):
+        
         xmin, ymin, xmax, ymax = list(map(int, list(box)))
         cv2.rectangle(img, (xmin, ymin), (xmax, ymax), tuple(int(x) for x in color), 2)
-        cv2.putText(img, str(name), (xmin, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, tuple(int(x) for x in color), 2, lineType=cv2.LINE_AA)
+        cv2.putText(img, str(name), (xmin-10, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, tuple(int(x) for x in color), 1, lineType=cv2.LINE_AA)
         return img
 
     def renormalize_cam_in_bounding_boxes(self, boxes, image_float_np, grayscale_cam):
@@ -170,7 +172,7 @@ class yolov8_heatmap:
     def process(self, img_path,imgir_path, save_path):
         # img process
         img = cv2.imread(img_path)
-
+        img_rgb=img
         img = letterbox(img)[0]
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = np.float32(img) / 255.0
@@ -181,7 +183,7 @@ class yolov8_heatmap:
         # print(img.shape)
 
         imgir = cv2.imread(imgir_path)
-
+        img_ir=imgir
         imgir = letterbox(imgir)[0]
         imgir = cv2.cvtColor(imgir, cv2.COLOR_BGR2RGB)
         imgir = np.float32(imgir) / 255.0
@@ -203,15 +205,17 @@ class yolov8_heatmap:
         pred = self.model(tensor)[0]
         pred = self.post_process(pred)
 
+   
         # rgb 上展示
         img=img[...,3:]
-        if self.renormalize:
-            cam_image = self.renormalize_cam_in_bounding_boxes(pred[:, :4].cpu().detach().numpy().astype(np.int32), img, grayscale_cam)
+        # if self.renormalize:
+        #     cam_image = self.renormalize_cam_in_bounding_boxes(pred[:, :4].cpu().detach().numpy().astype(np.int32), img, grayscale_cam)
         if self.show_box:
             for data in pred:
                 data = data.cpu().detach().numpy()
-                cam_image = self.draw_detections(data[:4], self.colors[int(data[4:].argmax())], f'{self.model_names[int(data[4:].argmax())]} {float(data[4:].max()):.2f}', cam_image)
-        
+                # cam_image = self.draw_detections(data[:4], self.colors[int(data[4:].argmax())], f'{self.model_names[int(data[4:].argmax())]} {float(data[4:].max()):.2f}', cam_image)
+                cam_image = self.draw_detections(data[:4], self.colors[int(data[4:].argmax())], f'{self.model_names[int(data[4:].argmax())]} {float(data[4:].max()):.2f}', img_rgb)
+                
         cam_image = Image.fromarray(cam_image)
         cam_image.save(save_path)
     
@@ -230,7 +234,7 @@ class yolov8_heatmap:
         
 def get_params():
     params = {
-        'weight': '/home/mjy/ultralytics/runs/detect/train19/weights/best.pt', # 现在只需要指定权重即可,不需要指定cfg
+        'weight': '/home/mjy/ultralytics/pth/p.pt', # 现在只需要指定权重即可,不需要指定cfg
         'device': 'cuda:0',
         'method': 'GradCAMPlusPlus', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
         'layer': [7],
@@ -245,4 +249,4 @@ def get_params():
 if __name__ == '__main__':
     model = yolov8_heatmap(**get_params())
     # model(r'/home/hjj/Desktop/dataset/dataset_visdrone/VisDrone2019-DET-test-dev/images/9999947_00000_d_0000026.jpg', 'result')
-    model(r'/home/mjy/ultralytics/datasets/OBBCrop/images/train/00004.jpg',r'/home/mjy/ultralytics/datasets/OBBCrop/image/train/00004.jpg', 'result')
+    model(r'/home/mjy/ultralytics/datasets/OBBCrop/images/test/00036.jpg',r'/home/mjy/ultralytics/datasets/OBBCrop/image/test/00036.jpg', 'result')

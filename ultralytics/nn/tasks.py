@@ -211,10 +211,11 @@ class BaseModel(nn.Module):
                     rgb=x
                     isR=True
             elif m.f==-3:
-                    x3=torch.cat([rgb,ir],dim=1)
-                    x3=m(x3)
-                    rgb,ir = torch.chunk(x3, 2, dim=1)
-                    x=[]#中间层
+                    if(len(list(m.named_parameters()))>0):
+                        x3=torch.cat([rgb,ir],dim=1)
+                        x3=m(x3)
+                        rgb,ir = torch.chunk(x3, 2, dim=1)
+                        x=[]#中间层
             elif m.i<23:
                 if isR:
                     x= m(rgb)

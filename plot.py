@@ -1,13 +1,21 @@
 import numpy as np
 import cv2
 
-label_path = r'/home/mjy/ultralytics/datasets/rgbir/labels/train/00002.txt'
-image_path = r'/home/mjy/ultralytics/datasets/rgbir/image/train/00002.jpg'
+label_path = r'/home/mjy/ultralytics/datasets/OBBCrop/labels/test/06144.txt'
+image_path = r'/home/mjy/ultralytics/datasets/OBBCrop/image/test/06144.jpg'
+            # 定义颜色列表，假设有四个类别  
+colors = [  
+            [255, 0, 0],      # 红色，类别0  
+            [0, 255, 0],      # 绿色，类别1  
+            [0, 0, 255],      # 蓝色，类别2  
+            [255, 255, 0],    # 黄色，类别3  
+            [75, 0, 130]      # 紫色（深紫色），类别4  
+        ]
 
 #坐标转换，原始存储的是YOLOv5格式
 # Convert nx4 boxes from [x, y, w, h] normalized to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
 def xywh2xyxy(x, w1, h1, img):
-    labels = ['van','car','truck','bus','freight car']
+    labels = ['car','truck','bus','van','freight car']
     label, x, y, w, h = x
     print("原图宽高:\nw1={}\nh1={}".format(w1, h1))
     #边界框反归一化
@@ -27,9 +35,17 @@ def xywh2xyxy(x, w1, h1, img):
     print("左上y坐标:{}".format(top_left_y))
     print("右下x坐标:{}".format(bottom_right_x))
     print("右下y坐标:{}".format(bottom_right_y))
+    
+    font = cv2.FONT_HERSHEY_SIMPLEX  # 字体类型  
+    font_scale = 0.5  # 字体大小  
+    font_color = colors[int(label)]  # 文本颜色  
+    thickness = 1  # 线条粗细  
+    top_left_x = max(top_left_x, 0)  # 确保文本不会超出图像边界  
+    top_left_y= max(top_left_y, 0) 
 
+    cv2.putText(img,labels[int(label)], (int(top_left_x), int(top_left_y)-5), font, font_scale, font_color, thickness)  
     # 绘图  rectangle()函数需要坐标为整数
-    cv2.rectangle(img, (int(top_left_x), int(top_left_y)), (int(bottom_right_x), int(bottom_right_y)), (0, 255, 0), 2)
+    cv2.rectangle(img, (int(top_left_x), int(top_left_y)), (int(bottom_right_x), int(bottom_right_y)), font_color, 2)
 
 
 
@@ -46,7 +62,4 @@ for x in lb:
     # 反归一化并得到左上和右下坐标，画出矩形框
     xywh2xyxy(x, w, h, img)
 
-cv2.imshow('show', img)
-cv2.imwrite('11.png',img)
-cv2.waitKey(0)  # 按键结束
-cv2.destroyAllWindows()
+cv2.imwrite('./GT/irgt.jpg',img)

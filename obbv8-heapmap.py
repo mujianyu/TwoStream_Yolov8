@@ -200,7 +200,7 @@ class yolov8_heatmap:
             pts = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]], dtype=np.int32)  
   
             # 定义颜色（BGR）  
-            color = (144,144,144)  # 替换为具体的BGR值  
+            color = (0, 0, 255)# 替换为具体的BGR值  
             
             # 使用cv2.line函数绘制四边形的四条边  
             cv2.line(img, tuple(pts[0]), tuple(pts[1]), color, thickness=2)  
@@ -212,10 +212,18 @@ class yolov8_heatmap:
         xmax=int(torch.round(xmax))
         ymin=int(torch.round(ymin))
         ymax=int(torch.round(ymax))
+        text = str(name)  
+        position = (xmin-3, ymin - 5) # 文本位置，左上角为原点  
+        fontFace = cv2.FONT_HERSHEY_SIMPLEX  # 字体类型  
+        fontScale = 0.4  # 字体缩放系数  
+        color = (0, 0, 255)  # 字体颜色，白色  
+        thickness = 1  # 字体粗细，这里设置为3  
+        lineType = cv2.LINE_AA  # 线条类型，使用抗锯齿线条  
 
         #xmin, ymin, xmax, ymax = list(map(int, list(box)))
         # cv2.rectangle(img, (xmin, ymin), (xmax, ymax), tuple(int(x) for x in color), 2)
-        cv2.putText(img, str(name), (xmin, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, tuple(int(x) for x in color), 2, lineType=cv2.LINE_AA)
+        cv2.putText(img, text, position, fontFace, fontScale, color, thickness,lineType)
+        # cv2.putText(img, str(name), (xmin, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, tuple(int(x) for x in color), 2, lineType=cv2.LINE_AA)
         return img
 
     def renormalize_cam_in_bounding_boxes(self, boxes, image_float_np, grayscale_cam):
@@ -253,18 +261,18 @@ class yolov8_heatmap:
     def process(self, img_path,imgir_path, save_path):
         # img process
         img = cv2.imread(img_path)
-
+        img_rgb=img
         img = letterbox(img)[0]
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = np.float32(img) / 255.0
-        
+       
         
         
         
         # print(img.shape)
 
         imgir = cv2.imread(imgir_path)
-
+        img_ir=imgir
         imgir = letterbox(imgir)[0]
         imgir = cv2.cvtColor(imgir, cv2.COLOR_BGR2RGB)
         imgir = np.float32(imgir) / 255.0
@@ -281,7 +289,7 @@ class yolov8_heatmap:
         
         grayscale_cam = grayscale_cam[0, :]
         
-        cam_image = show_cam_on_image(img[...,:3], grayscale_cam, use_rgb=True)
+        # cam_image = show_cam_on_image(img[...,:3], grayscale_cam, use_rgb=True)
         tensor = torch.tensor(tensor, requires_grad=True) #True
 
         pred = self.model(tensor)[0]
@@ -290,13 +298,13 @@ class yolov8_heatmap:
 
         # rgb 上展示
         img=img[...,3:]
-        if self.renormalize:
-            cam_image = self.renormalize_cam_in_bounding_boxes(pred.cpu().detach().numpy().astype(np.int32), img, grayscale_cam)
+        # if self.renormalize:
+        #     cam_image = self.renormalize_cam_in_bounding_boxes(pred.cpu().detach().numpy().astype(np.int32), img, grayscale_cam)
         if self.show_box:
             for data in pred:
                 data = data.cpu().detach().numpy()
-                cam_image = self.draw_detections(data, self.colors[int(data[4:-1].argmax())], f'{self.model_names[int(data[4:-1].argmax())]} {float(data[4:-1].max()):.2f}', cam_image)
-        
+                # cam_image = self.draw_detections(data, self.colors[int(data[4:-1].argmax())], f'{self.model_names[int(data[4:-1].argmax())]} {float(data[4:-1].max()):.2f}', cam_image)
+                cam_image = self.draw_detections(data, self.colors[int(data[4:-1].argmax())], f'{self.model_names[int(data[4:-1].argmax())]} {float(data[4:-1].max()):.2f}',img_rgb)
         cam_image = Image.fromarray(cam_image)
         cam_image.save(save_path)
     
@@ -315,7 +323,7 @@ class yolov8_heatmap:
         
 def get_params():
     params = {
-        'weight': '/home/mjy/ultralytics/runs/obb/CBAM/weights/best.pt', # 现在只需要指定权重即可,不需要指定cfg
+        'weight': '/home/mjy/ultralytics/pth/p.pt', # 现在只需要指定权重即可,不需要指定cfg
         'device': 'cuda:0',
         'method': 'GradCAM', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
         'layer': [20],
@@ -330,4 +338,4 @@ def get_params():
 if __name__ == '__main__':
     model = yolov8_heatmap(**get_params())
     # model(r'/home/hjj/Desktop/dataset/dataset_visdrone/VisDrone2019-DET-test-dev/images/9999947_00000_d_0000026.jpg', 'result')
-    model(r'/home/mjy/ultralytics/datasets/OBB/images/train/00011.jpg',r'/home/mjy/ultralytics/datasets/OBB/image/train/00011.jpg', 'result')
+    model(r'/home/mjy/ultralytics/datasets/OBBCrop/images/test/00036.jpg',r'/home/mjy/ultralytics/datasets/OBBCrop/image/test/00036.jpg', 'result')

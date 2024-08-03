@@ -24,6 +24,10 @@ def draw_bbox(image_path, yolo_data):
         y_max = int((y_center + bbox_height / 2) * height)
  
         cv2.rectangle(img, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
+    with open('total.txt', 'a') as file:  # 使用 'a' 模式以追加方式打开文件  
+                # 写入信息到文件  
+        file.write("第" + image_path +"文件:"+str(len(yolo_data))+"个\n")  # 假设 files 变量已经包含了你想要的文件名或标识符
+
  
     return img
  
@@ -48,6 +52,7 @@ def main():
             output_path = os.path.join('./', 'output', file[:-4] + '.jpg')
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             cv2.imwrite(output_path, img_with_bbox)
+
             print("finish:"+output_path)
  
 if __name__ == '__main__':
