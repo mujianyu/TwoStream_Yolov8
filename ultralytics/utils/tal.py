@@ -335,9 +335,9 @@ def make_anchors(feats, strides, grid_cell_offset=0.5):
 
 def dist2bbox(distance, anchor_points, xywh=True, dim=-1):
     """Transform distance(ltrb) to box(xywh or xyxy)."""
-    lt, rb = distance.chunk(2, dim)
-    x1y1 = anchor_points - lt
-    x2y2 = anchor_points + rb
+    lt, rb = distance.chunk(2, dim) # 左边距离 上面的距离
+    x1y1 = anchor_points - lt # 左上角
+    x2y2 = anchor_points + rb #右下角
     if xywh:
         c_xy = (x1y1 + x2y2) / 2
         wh = x2y2 - x1y1
@@ -348,6 +348,7 @@ def dist2bbox(distance, anchor_points, xywh=True, dim=-1):
 def bbox2dist(anchor_points, bbox, reg_max):
     """Transform bbox(xyxy) to dist(ltrb)."""
     x1y1, x2y2 = bbox.chunk(2, -1)
+    # x1y1 x2y2
     return torch.cat((anchor_points - x1y1, x2y2 - anchor_points), -1).clamp_(0, reg_max - 0.01)  # dist (lt, rb)
 
 

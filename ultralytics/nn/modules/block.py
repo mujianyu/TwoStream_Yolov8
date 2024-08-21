@@ -1029,6 +1029,11 @@ class DFL(nn.Module):
     def forward(self, x):
         """Applies a transformer layer on input tensor 'x' and returns a tensor."""
         b, _, a = x.shape  # batch, channels, anchors
+        # a 8400
+        # c1=16 
+        # 4 16 a 
+        # 16 4 a 
+        # 4 a
         return self.conv(x.view(b, 4, self.c1, a).transpose(2, 1).softmax(1)).view(b, 4, a)
         # return self.conv(x.view(b, self.c1, 4, a).softmax(1)).view(b, 4, a)
 
@@ -1192,8 +1197,8 @@ class MdC2f(nn.Module):
         self.c = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, 2 * self.c, 1, 1)
         self.cv2 = Conv((2 + n) * self.c, c2, 1)  # optional act=FReLU(c2)
-
         self.m = nn.ModuleList(Md(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0,deiltations=i+1) for i in range(n))
+        
 
     def forward(self, x):
         """Forward pass through C2f layer."""

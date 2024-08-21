@@ -5,17 +5,17 @@ label_path = r'/home/mjy/ultralytics/datasets/OBBCrop/labels/test/06144.txt'
 image_path = r'/home/mjy/ultralytics/datasets/OBBCrop/image/test/06144.jpg'
             # 定义颜色列表，假设有四个类别  
 colors = [  
-            [255, 0, 0],      # 红色，类别0  
-            [0, 255, 0],      # 绿色，类别1  
-            [0, 0, 255],      # 蓝色，类别2  
-            [255, 255, 0],    # 黄色，类别3  
-            [75, 0, 130]      # 紫色（深紫色），类别4  
-        ]
+    [165, 0, 255],       
+    [0, 255, 0],        
+    [102, 255, 255],       
+    [255, 165, 0],      
+    [255, 255, 0]      
+]
 
 #坐标转换，原始存储的是YOLOv5格式
 # Convert nx4 boxes from [x, y, w, h] normalized to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
 def xywh2xyxy(x, w1, h1, img):
-    labels = ['car','truck','bus','van','freight car']
+    labels = ['car','truck','bus','van','freight']
     label, x, y, w, h = x
     print("原图宽高:\nw1={}\nh1={}".format(w1, h1))
     #边界框反归一化
@@ -37,15 +37,17 @@ def xywh2xyxy(x, w1, h1, img):
     print("右下y坐标:{}".format(bottom_right_y))
     
     font = cv2.FONT_HERSHEY_SIMPLEX  # 字体类型  
-    font_scale = 0.5  # 字体大小  
+    font_scale = 1.6  # 字体大小  
     font_color = colors[int(label)]  # 文本颜色  
-    thickness = 1  # 线条粗细  
+    thickness = 4  # 线条粗细  
+    
     top_left_x = max(top_left_x, 0)  # 确保文本不会超出图像边界  
     top_left_y= max(top_left_y, 0) 
 
-    cv2.putText(img,labels[int(label)], (int(top_left_x), int(top_left_y)-5), font, font_scale, font_color, thickness)  
+     
+    cv2.putText(img,labels[int(label)], (int(top_left_x), int(top_left_y)-3), font, font_scale, font_color, thickness)  
     # 绘图  rectangle()函数需要坐标为整数
-    cv2.rectangle(img, (int(top_left_x), int(top_left_y)), (int(bottom_right_x), int(bottom_right_y)), font_color, 2)
+    cv2.rectangle(img, (int(top_left_x), int(top_left_y)), (int(bottom_right_x), int(bottom_right_y)), font_color, thickness)
 
 
 

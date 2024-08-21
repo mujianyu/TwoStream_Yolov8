@@ -108,10 +108,11 @@ class BboxLoss(nn.Module):
         Distribution Focal Loss (DFL) proposed in Generalized Focal Loss
         https://ieeexplore.ieee.org/document/9792391
         """
-        tl = target.long()  # target left
-        tr = tl + 1  # target right
-        wl = tr - target  # weight left
-        wr = 1 - wl  # weight right
+        tl = target.long()  # target left yi
+        tr = tl + 1  # target right  yi+1
+        wl = tr - target  # weight left (yi+1-y)
+        wr = 1 - wl  # weight right (y-yi)
+        
         return (
             F.cross_entropy(pred_dist, tl.view(-1), reduction="none").view(tl.shape) * wl
             + F.cross_entropy(pred_dist, tr.view(-1), reduction="none").view(tl.shape) * wr
