@@ -149,10 +149,10 @@ tests/
 # Neural Network weights -----------------------------------------------------------------------------------------------
 weights/
 *.weights
-# *.pt
+*.pt
 *.pb
 *.onnx
-# *.engine
+*.engine
 *.mlmodel
 *.mlpackage
 *.torchscript
