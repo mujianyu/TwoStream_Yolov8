@@ -1,7 +1,0 @@
-Looking in indexes: https://pypi.mirrors.ustc.edu.cn/simple/
-Requirement already satisfied: onnxscript in /home/mjy/miniconda3/envs/t2/lib/python3.8/site-packages (0.1.0.dev20240710)
-Requirement already satisfied: numpy in /home/mjy/miniconda3/envs/t2/lib/python3.8/site-packages (from onnxscript) (1.24.3)
-Requirement already satisfied: onnx>=1.16 in /home/mjy/miniconda3/envs/t2/lib/python3.8/site-packages (from onnxscript) (1.16.1)
-Requirement already satisfied: typing-extensions in /home/mjy/miniconda3/envs/t2/lib/python3.8/site-packages (from onnxscript) (4.12.2)
-Requirement already satisfied: ml-dtypes in /home/mjy/miniconda3/envs/t2/lib/python3.8/site-packages (from onnxscript) (0.2.0)
-Requirement already satisfied: protobuf>=3.20.2 in /home/mjy/miniconda3/envs/t2/lib/python3.8/site-packages (from onnx>=1.16->onnxscript) (4.25.3)
