@@ -236,6 +236,30 @@ def fuse_deconv_and_bn(deconv, bn):
     return fuseddconv
 
 
+def get_flops(model, imgsz=640):
+    """Return a YOLO model's FLOPs."""
+    if not thop:
+        return 0.0  # if not installed return 0.0 GFLOPs
+
+    try:
+        model = de_parallel(model)
+        p = next(model.parameters())
+        if not isinstance(imgsz, list):
+            imgsz = [imgsz, imgsz]  # expand if int/float
+        try:
+            # Use stride size for input tensor
+            stride = max(int(model.stride.max()), 32) if hasattr(model, "stride") else 32  # max stride
+            # im = torch.empty((1, p.shape[1], stride, stride), device=p.device)  # input image in BCHW format
+            im = torch.empty((1, 6, stride, stride), device=p.device)  # input image in BCHW format
+            flops = thop.profile(deepcopy(model), inputs=[im], verbose=False)[0] / 1e9 * 2  # stride GFLOPs
+            return flops * imgsz[0] / stride * imgsz[1] / stride  # imgsz GFLOPs
+        except Exception:
+            # Use actual image size for input tensor (i.e. required for RTDETR models)
+            im = torch.empty((1, p.shape[1], *imgsz), device=p.device)  # input image in BCHW format
+            return thop.profile(deepcopy(model), inputs=[im], verbose=False)[0] / 1e9 * 2  # imgsz GFLOPs
+    except Exception:
+        return 0.0
+    
 def model_info(model, detailed=False, verbose=True, imgsz=640):
     """
     Model information.
@@ -305,28 +329,7 @@ def model_info_for_loggers(trainer):
     return results
 
 
-def get_flops(model, imgsz=640):
-    """Return a YOLO model's FLOPs."""
-    if not thop:
-        return 0.0  # if not installed return 0.0 GFLOPs
 
-    try:
-        model = de_parallel(model)
-        p = next(model.parameters())
-        if not isinstance(imgsz, list):
-            imgsz = [imgsz, imgsz]  # expand if int/float
-        try:
-            # Use stride size for input tensor
-            stride = max(int(model.stride.max()), 32) if hasattr(model, "stride") else 32  # max stride
-            im = torch.empty((1, p.shape[1], stride, stride), device=p.device)  # input image in BCHW format
-            flops = thop.profile(deepcopy(model), inputs=[im], verbose=False)[0] / 1e9 * 2  # stride GFLOPs
-            return flops * imgsz[0] / stride * imgsz[1] / stride  # imgsz GFLOPs
-        except Exception:
-            # Use actual image size for input tensor (i.e. required for RTDETR models)
-            im = torch.empty((1, p.shape[1], *imgsz), device=p.device)  # input image in BCHW format
-            return thop.profile(deepcopy(model), inputs=[im], verbose=False)[0] / 1e9 * 2  # imgsz GFLOPs
-    except Exception:
-        return 0.0
 
 
 def get_flops_with_torch_profiler(model, imgsz=640):
