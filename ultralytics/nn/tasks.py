@@ -154,11 +154,9 @@ class BaseModel(nn.Module):
         # rgb=x[:, :3, :, :] # 可见光
         x=rgb
         # if(x.shape[1]==6) :
-
         #     # import matplotlib.pyplot as plt  
         #     # import cv2
         #     # import numpy as np
-            
         #     # img1= x[0][:3,...] #rgb
         #     # img2= x[0][3:,...] #ir
         #     # img1=img1.permute(1, 2, 0) 
@@ -170,7 +168,6 @@ class BaseModel(nn.Module):
         #     #     img2=np.array(img2)
         #     # if type(img1==torch.Tensor):
         #     #     img1=img1.cpu()
-
         #     # plt.imshow(img1)
         #     # plt.savefig('/home/mjy/ultralytics/images/'+str(1)+'rgb.jpg')
         #     # plt.close()
