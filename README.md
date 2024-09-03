@@ -1,4 +1,10 @@
 # YOLOV8多模态目标检测
+## 前言：环境配置要求
+torch                        2.3.1\
+torchvision                  0.18.1\
+Python 3.8.19\
+tensorrt                     8.5.3.1
+
 ## 1. 数据集DroneVehicle数据集(可见光+热红外)
 [DroneVehicle数据集下载地址](https://github.com/VisDrone/DroneVehicle) 
 
