@@ -2926,103 +2926,16 @@ class Concat3(nn.Module):
 
         return x
 ################空###################
-# class RIFusion(nn.Module):
-#     # Concatenate a list of tensors along dimension
-#     def __init__(self, c1,dimension=1):
-#         super().__init__()
 
-
-#     def forward(self, x):
-
-#         return x
-#####################################
-
-#########
-
-# class RIFusion(nn.Module):
-#     # Concatenate a list of tensors along dimension
-#     def __init__(self, c1,r=16,dimension=1):
-#         super().__init__()
-#         self.c1=c1*2
-#         self.c2=c1
-#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-#         # self.conv1 = nn.Conv2d(self.c1, self.c1// r, kernel_size=1, bias=False)  
-#         self.conv1=nn.Linear(self.c1, self.c1 // r, bias=False)
-#         self.relu = nn.ReLU(inplace=True)  
-#         # self.conv2 = nn.Conv2d(self.c1 // r, self.c1, kernel_size=1, bias=False)  
-#         self.conv2=nn.Linear(self.c1 // r, self.c1, bias=False)
-#         self.sigmoid = nn.Sigmoid()  
-
-#     def forward(self, x):
-#         b,_,_,_=x.size()
-#         x1 = x*self.sigmoid(self.conv2(self.relu(self.conv1(self.avg_pool(x).view(b, self.c1)))).view(b, self.c1, 1, 1)) 
-#         return x+torch.cat((x1[:,self.c2:,...],x1[:,:self.c2,...]),dim=1)
-    
 class RIFusion(nn.Module):
     # Concatenate a list of tensors along dimension
     def __init__(self, c1,r=16,dimension=1):
         super().__init__()
-        self.c1=c1*2
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(self.c1, self.c1 // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(self.c1 // r, self.c1, bias=False),
-            nn.Sigmoid()
-            # nn.Sigmoid(inplace=True)
-        )
+
     def forward(self, x):
-        # return x
-        b, _, _, _ = x.size()
-        y = self.avg_pool(x).view(b, self.c1)
-        y = self.fc(y).view(b, self.c1, 1, 1)
-        # return x4+x * y
-        # # x1=x4+x * y
-        # # x4+=x1
-        # # x[:,:self.c1//2,...]+=x1[:,self.c1//2:,...]
-        # # x[:,self.c1//2:,...]+=x1[:,:self.c1//2,...]
-        # # return x
-        x1=x*y
-        return x+torch.cat((x1[:,self.c1//2:,...],x1[:,:self.c1//2,...]),dim=1)
-
-########
-# class RIFusion(nn.Module):
-#     # Concatenate a list of tensors along dimension
-#     def __init__(self, c1,dimension=1):
-#         super().__init__()
-#         # self.fc=Conv(c1*2,c1*2)
-
-#     def forward(self, x):
-#         # x1=self.fc(x)
-#         return x
-      
-############卷积##############
-# class RIFusion(nn.Module):
-#     # Concatenate a list of tensors along dimension
-#     def __init__(self, c1,dimension=1):
-#         super().__init__()
-#         self.fc=Conv(c1*2,c1*2)
-
-#     def forward(self, x):
-#         x1=self.fc(x)
-#         return x+x1
-###########################
-      
-# class RIFusion(nn.Module):
-#     # Concatenate a list of tensors along dimension
-#     def __init__(self, c1,dimension=1):
-#         super().__init__()
-#         # self.SE=SEAttention(c1*2,c1*2)
-
-#     def forward(self, x):
-#         # x1=self.SE(x)
-#         # x_1,x_2=torch.chunk(x1,2,dim=1)
-#         # x1=torch.cat([x_2,x_1],dim=1)
-#         # x=torch.add(x,x1)
-#         return x
-
-
-##############注意力################
+        return x
+  
+    
 # class RIFusion(nn.Module):
 #     # Concatenate a list of tensors along dimension
 #     def __init__(self, c1,r=16,dimension=1):
@@ -3034,24 +2947,16 @@ class RIFusion(nn.Module):
 #             nn.ReLU(inplace=True),
 #             nn.Linear(self.c1 // r, self.c1, bias=False),
 #             nn.Sigmoid()
+#             # nn.Sigmoid(inplace=True)
 #         )
 #     def forward(self, x):
 #         # return x
-#         b, c, _, _ = x.size()
-#         c//=2
+#         b, _, _, _ = x.size()
 #         y = self.avg_pool(x).view(b, self.c1)
 #         y = self.fc(y).view(b, self.c1, 1, 1)
-#         x1=x * y
-#         # x[:,:c,...]+=x1[:,c:,...]
-#         # x[:,c:,...]+=x1[:,:c,...]
-#         # return x
-#         return x+torch.cat((x1[:,c:,...],x1[:,:c,...]),dim=1)
- ###########################   
- #       return x+torch.cat((x1[:,c:,...],x1[:,:c,...]),dim=1)
-        
-#         # y = list(x.split((c, c), 1))
-#         # y1 = list(x1.split((c, c), 1))
-#         # y[0]=torch.add(y[0],y1[1])
-#         # y[1]=torch.add(y[1],y1[0])
-#         # return torch.cat(y, 1)
+  
+#         x1=x*y
+#         return x+torch.cat((x1[:,self.c1//2:,...],x1[:,:self.c1//2,...]),dim=1)
+
+
 
