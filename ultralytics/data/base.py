@@ -160,7 +160,7 @@ class BaseDataset(Dataset):
         im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
         
         #f1=self.imir_files[i]
-        f1=im.replace('images','image')
+        f1=self.im_files[i].replace('images','image')
         imir=cv2.imread(f1)
         
         #imir=cv2.cvtColor(imir,cv2.COLOR_BGR2GRAY) #转化为i灰度图像
