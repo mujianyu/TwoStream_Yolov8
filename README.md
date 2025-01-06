@@ -95,3 +95,4 @@ onnx推理: detect/obbOnnxdetect.py
 ## 14. 数据处理
 裁剪droneVechile数据集的白边： dataProcess/cropData.py \
 droneVechile数据集从Dota格式转OBB格式：dataProcess/dotaToOBB.py
+droneVechile数据集从xml格式转yolo格式： xmlToTxt.py
