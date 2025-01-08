@@ -60,7 +60,8 @@ labels 公用一个标签(一般来说使用红外图片标签)
 分别在yaml文件夹和data文件下进行模型和数据集文件的配置
 ## 5. 训练
 ```
-python train.py  
+python train.py
+windows直接运行可能报多进程错误，请运行python train_for_windows.py
 ```
 ## 6. 测试
 ```
