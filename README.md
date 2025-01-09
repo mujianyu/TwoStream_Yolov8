@@ -32,6 +32,10 @@ datasets
 images 保存的是可见光图片\
 image 保存的是热红外图片\
 labels 公用一个标签(一般来说使用红外图片标签)
+注：DroneVehicle原始数据下载下来需要经过修改文件结构路径，裁剪图片，xml生成txt，以上过程由于图片较多，比较费时间且浪费cpu资源，干脆把处理好直接能下文训练的包含image，images，labels且分别含train，val，test数据集上传了，懒人必备，省的预处理过程，下载直接开始训练，百度网盘需要会员才能上传大文件，遂上传到夸克网盘了，
+我用夸克网盘分享了「OBBCrop.zip」，点击链接即可保存。打开「夸克APP」，无需下载在线播放视频，畅享原画5倍速，支持电视投屏。
+链接：https://pan.quark.cn/s/71a7d0fef724
+提取码：vnep
 ## 3. 权重文件下载
 <details open><summary>目标检测权重</summary>
 
@@ -61,8 +65,11 @@ labels 公用一个标签(一般来说使用红外图片标签)
 ## 5. 训练
 ```
 python train.py
+
 windows直接运行可能报多进程错误，请运行python train_for_windows.py
+
 ```
+注：windows直接运行可能报多进程错误，请运行python train_for_windows.py
 ## 6. 测试
 ```
 python test.py  
