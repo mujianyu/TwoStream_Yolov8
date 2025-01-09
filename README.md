@@ -65,6 +65,9 @@ labels 公用一个标签(一般来说使用红外图片标签)
 ## 5. 训练
 ```
 python train.py
+
+windows直接运行可能报多进程错误，请运行python train_for_windows.py
+
 ```
 注：windows直接运行可能报多进程错误，请运行python train_for_windows.py
 ## 6. 测试
