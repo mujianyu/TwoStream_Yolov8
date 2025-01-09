@@ -111,5 +111,5 @@ Feel free to dive in! [Open an issue](https://github.com/mujianyu/TwoStream_Yolo
 
 # Contributors
 This project exists thanks to all the people who contribute.\
-@ [hopesala](https://github.com/hopesala)
+@ [hopesala](https://github.com/hopesala) ![hopesala](https://avatars.githubusercontent.com/u/8850257?v=4)
 
