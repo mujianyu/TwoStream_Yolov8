@@ -105,18 +105,7 @@ onnx推理: detect/obbOnnxdetect.py
 droneVechile数据集从Dota格式转OBB格式：dataProcess/dotaToOBB.py \
 droneVechile数据集从xml格式转yolo格式： xmlToTxt.py
 
-# Citation
-If you use this code or ideas from the paper for your research, please cite our paper:
-```
-@conference{ JSJG202411001090,
-author = { 母健宇 and  赵博雅 and  贺志鹏 and  吴远峰 and  于浩洋 and  高连如 },
-title = {多模态渐近融合轻量化遥感图像车辆目标检测},
-booktitle = {第十八届全国信号和智能信息处理与应用学术会议论文集},
-year = {2024},
-pages = {521-527},
-publisher = {大连海事大学信息科学技术学院;中国科学院空天信息创新研究院计算光学成像技术重点实验室;}
-}
-```
+
 # Contributing 
 Feel free to dive in! [Open an issue](https://github.com/mujianyu/TwoStream_Yolov8/issues) or submit PRs.
 
